@@ -5,11 +5,11 @@ from pytest import approx
 
 def compare_rel(s, x, y, tol):
     print(f'{s}: {x} should be {y}, ', end='')
-    if abs(x) < tol and abs(y) < tol:
+    if abs(x) < tol or abs(y) < tol:
         print(f'abs difference: {abs(x-y)}')
         assert x == approx(y, abs=tol)
     else:
-        print(f'rel difference: {abs(x-y)/(abs(x)+abs(y))}')
+        print(f'rel difference: {abs(x-y)/(abs(y))}')
         assert x == approx(y, rel=tol)
 
 # open the data file
@@ -72,3 +72,19 @@ print('ct particle 0: ', t1[0])
 print('ct particle 2: ', t1[2])
 compare_rel('rel diff particle 2 ct', t1[2], dt, 1.0e-14)
 
+# check particle 3
+# goes from -0.001 to 0.001 (y) at pt=1.0e-2
+print('particle 3')
+print(x1[3], y1[3], t1[3], px1[3], py1[3], pt1[3])
+compare_rel('particle 3 y: ', y1[3],  0.001, 1.0e-14)
+# compare timing
+L0 = 1
+L1 = np.sqrt(1.0 + .002**2)
+beta0 = beta_ref
+# what is beta for this pt?
+pt = pt1[3]
+g = -beta_gamma_ref * pt + gamma_ref
+bg = np.sqrt(g**2 - 1)
+b = bg/g
+dt = L1/b - L0/beta0
+compare_rel('particle 3 t: ', t1[3], dt, 1.0e-14)

@@ -64,12 +64,17 @@ dpx[1] = 0.002/np.sqrt(1 + 0.002**2)
 dpt[2] = 1.0e-2
 
 # particle 3 travels from -0.001 to 0.001 at pt=1.0e-2
+# pt = 1.0e-2. momentum changes:
+pt = 1.0e-2
+g = -ref.beta_gamma * pt + ref.gamma
+bg = np.sqrt(g**2 - 1)
+mom_frac = bg/ref.beta_gamma
 dy[3] = -0.001
-dpy[3] = 0.002/np.sqrt(1 + 0.002**2)
-dpt[3] = 1.0e-2
+dpy[3] = 0.002*mom_frac/np.sqrt(1 + 0.002**2)
+dpt[3] = pt
 
 # particle 4 travels straight at pt=-1.0e-2
-dpt[4] = -1.0e-2
+dpt[4] = pt
 
 # particle 5 travels from  0.001 to -0.001 at pt=-1.0e-2
 dx[5] = 0.001
