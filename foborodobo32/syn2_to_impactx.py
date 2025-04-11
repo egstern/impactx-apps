@@ -28,8 +28,6 @@ def cnv_sbend(elem):
         print('e1/e2 attribute not yet supported for sbend in ImpactX')
 
     if elem.has_attr('k1'):
-        # This is a CF bend
-        # to be implemented
         ds = elem.get_length()
         angle = elem.get_bend_angle()
         rc = angle/ds
@@ -49,7 +47,21 @@ def cnv_quadrupole(elem):
     return impactx.element.ChrQuad(ds, k1, unit=0, nslice=1, name=elem.get_name())
 #
 
+def cnv_rfcavity(elem):
+    mp = refpart.get_mass()
+    rfvolt = elem.get_double_attribute('volt')/1000.0 # get the voltage in GV
+    freq = elem.get_double_attribute('freq')*1.0e6 # get the freq in Hz
+    phase = elem.get_double_attribute('lag', 0.0)*360.0-90.0
+    return impactx.element.ShortRF(rfvolt/mp, freq, phase, name=elem.get_name())
+
 def syn2_to_impactx(lattice):
+    # lattice must have a reference particle
+    try:
+        refpart = lattice.get_reference_particle()
+    except:
+        print("cannot get reference particle.")
+        return None
+
     impactx_lattice = []
 
     for elem in lattice.get_elements():
@@ -76,7 +88,7 @@ def syn2_to_impactx(lattice):
         elif etype == ET.dipedge:
             impactx_lattice.append(cnv_dipedge(elem))
         elif etype == ET.rfcavity:
-            impactx_lattice.append(cnv_rfcavity(elem))
+            impactx_lattice.append(cnv_rfcavity(elem, refpart))
         elif etype == ET.
         else:
             print('warning: unsupported element: ', etype)
