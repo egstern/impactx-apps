@@ -91,8 +91,6 @@ if myrank == 0:
     print("initial std dp/p: ", init_std_dpop)
 
 
-
-
 # set numerical parameters and IO control
 sim.particle_shape = 2  # B-spline order
 sim.space_charge = False
@@ -210,8 +208,7 @@ pc.add_n_particles(
     dx_podv, dy_podv, dt_podv, dpx_podv, dpy_podv, dpt_podv, qm_eev, bunch_charge_C
 )
 
-
-
+sim.lattice.extend(syn2_to_impactx(lattice)
 # design the accelerator lattice
 sim.lattice.load_file("fodo.madx", nslice=25)
 
