@@ -172,9 +172,9 @@ def set_lattice_k1(sim):
     mp_str = 0.1;
     elem = elements.Multipole(2, mp_str, 0.0, name=nm)
 
-    lattice = [monitor, elem, monitor]
+    the_lattice = [monitor, elem, monitor]
 
-    sim.lattice.extend(lattice)
+    sim.lattice.extend(the_lattice)
 
     return
 
@@ -191,9 +191,9 @@ def set_lattice_k1s(sim):
     mp_str = 0.1;
     elem = elements.Multipole(2, 0.0, mp_str, name=nm)
 
-    lattice = [monitor, elem, monitor]
+    the_lattice = [monitor, elem, monitor]
 
-    sim.lattice.extend(lattice)
+    sim.lattice.extend(the_lattice)
 
     return
 
@@ -209,8 +209,6 @@ def run_k1():
     set_lattice_k1(sim)
     print('after set_lattice_k1')
 
-    lattice = sim.lattice.extend(lattice)
-    sim.lattice.extend(lattice)
     print('run_k1 after sim.lattice.extend')
 
     sim.track_particles()
@@ -231,12 +229,8 @@ def run_k1s():
     set_lattice_k1s(sim)
     print('after set_lattice_k1s')
 
-    sim.lattice.extend(lattice)
-    print("run_k1s: after sim.extend_lattice")
-
     sim.track_particles()
     print("run_k1s: after sim.track_particles")
-
 
     print("exit run_k1s")
     sim.finalize()
