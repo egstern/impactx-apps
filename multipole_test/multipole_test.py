@@ -162,11 +162,7 @@ def create_sim():
 
 #**********************************************************************
 
-def run_k1():
-    print("enter run_k1")
-
-    sim = create_sim()
-
+def set_lattice_k1(sim):
     nm = "k1"
 
     # create the beamline
@@ -178,6 +174,38 @@ def run_k1():
 
     lattice = [monitor, elem, monitor]
 
+    return lattice
+
+
+#**********************************************************************
+
+def set_lattice_k1s(sim):
+    nm = "k1s"
+
+    # create the beamline
+    monitor = elements.BeamMonitor(f'monitor_{nm}.h5', backend="h5")
+    # mp_str = 0.1;
+    # mpole: multipole, ksl={0.0, mp_str};
+    mp_str = 0.1;
+    elem = elements.Multipole(2, 0.0, mp_str, name=nm)
+
+    lattice = [monitor, elem, monitor]
+
+    return lattice
+
+
+#**********************************************************************
+
+def run_k1():
+    print("enter run_k1")
+
+    sim = create_sim()
+
+    print('before set_lattice_k1')
+    lattice = set_lattice_k1(sim)
+    print('after set_lattice_k1')
+
+    lattice = sim.lattice.extend(lattice)
     sim.lattice.extend(lattice)
     print('run_k1 after sim.lattice.extend')
 
@@ -195,16 +223,9 @@ def run_k1s():
 
     sim = create_sim()
     
-    nm = "k1s"
-
-    # create the beamline
-    monitor = elements.BeamMonitor(f'monitor_{nm}.h5', backend="h5")
-    # mp_str = 0.1;
-    # mpole: multipole, ksl={0.0, mp_str};
-    mp_str = 0.1;
-    elem = elements.Multipole(2, 0.0, mp_str, name=nm)
-
-    lattice = [monitor, elem, monitor]
+    print('before set_lattice_k1s')
+    lattice = set_lattice_k1s(sim)
+    print('after set_lattice_k1s')
 
     sim.lattice.extend(lattice)
     print("run_k1s: after sim.extend_lattice")
