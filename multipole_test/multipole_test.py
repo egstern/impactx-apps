@@ -90,10 +90,10 @@ def init_particles():
     return lp
 
 
-# Initializes the passed in sim object
-def init_sim(sim):
+def create_sim():
 
-    print('enter init_sim')
+    sim = ImpactX()
+
     # set numerical parameters and IO control
     sim.particle_shape = 2  # B-spline order
     sim.space_charge = False
@@ -101,24 +101,18 @@ def init_sim(sim):
     sim.slice_step_diagnostics = False
 
     # domain decomposition & space charge mesh
-    print('before init_grids')
     sim.init_grids()
-    print('after init_grids')
 
     energy_MeV = mp_gev * 1000
     bunch_charge_C = 0.5e10
 
     #   reference particle
-    print('before particle_container().ref_particle()')
     ref = sim.particle_container().ref_particle()
     ref.set_charge_qe(1.0).set_mass_MeV(mp_gev*1000).set_kin_energy_MeV(energy_MeV)
     qm_eev = 1.0 / (mp_gev*1.0e9)  # 1/protom mass  in eV
     ref.z = 0
-    print('after particle_container().ref_particle()')
 
-    print("before pc = sim.particle_container()")
     pc = sim.particle_container()
-    print("after pc = sim.particle_container()")
 
     particles = init_particles()
 
@@ -154,16 +148,24 @@ def init_sim(sim):
         dx_podv, dy_podv, dt_podv, dpx_podv, dpy_podv, dpt_podv, qm_eev, bunch_charge_C
        )
 
-    return
+    return sim
 
+def run_sim(lattice):
+
+    sim = create_sim()
+    
+    sim.lattice.extend(lattice)
+
+    sim.track_particles()
+
+    sim.finalize()
 
 #**********************************************************************
 
-# Run the k1 test with a passed in sim object
-def run_k1(sim):
+def run_k1():
     print("enter run_k1")
 
-    init_sim(sim)
+    sim = create_sim()
 
     nm = "k1"
 
@@ -176,18 +178,18 @@ def run_k1(sim):
 
     lattice = [monitor, elem, monitor]
 
-    sim.lattice.extend(lattice)
-    sim.track_particles()
+    run_sim(lattice)
+    
     print('exit run_k1')
-    pass
+    sim.finalize()
+    return
 
 #**********************************************************************
 
-# runs the k1s test with passed in sim object
-def run_k1s(sim):
+def run_k1s():
     print("enter run_k1s")
 
-    init_sim(sim)
+    sim = create_sim()
     
     nm = "k1s"
 
@@ -200,30 +202,26 @@ def run_k1s(sim):
 
     lattice = [monitor, elem, monitor]
 
-    sim.lattice.extend(lattice)
-
-    sim.track_particles()
+    run_sim(lattice)
     print("run_k1s: after sim = init_sim")
 
     print("exit run_k1s")
-    pass
+    sim.finalize()
+    return
 
 #**********************************************************************
 
 
 def main():
     print("before run_k1")
-    sim = ImpactX()
-    run_k1(sim)
-    print("after run_k1 before finalize")
-    #sim.finalize()
+    run_k1()
 
+    print("after run_k1 before run_k1s")
     # create new sim
-    sim = ImpactX()
-    run_k1s(sim)
-    print("after run_k1s before finalize")
-    sim.finalize()
-    print('after finalize')
+
+    run_k1s()
+    print("after run_k1s")
+
     return
 
 if __name__ == "__main__":
