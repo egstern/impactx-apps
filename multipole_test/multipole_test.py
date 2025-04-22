@@ -92,7 +92,10 @@ def init_particles():
 
 def create_sim():
 
+    print("enter create_sim")
     sim = ImpactX()
+
+    print("after ImpactX()")
 
     # set numerical parameters and IO control
     sim.particle_shape = 2  # B-spline order
@@ -100,8 +103,10 @@ def create_sim():
     # sim.diagnostics = False  # benchmarking
     sim.slice_step_diagnostics = False
 
+    print('before init_grids')
     # domain decomposition & space charge mesh
     sim.init_grids()
+    print('after init_grids')
 
     energy_MeV = mp_gev * 1000
     bunch_charge_C = 0.5e10
@@ -112,7 +117,9 @@ def create_sim():
     qm_eev = 1.0 / (mp_gev*1.0e9)  # 1/protom mass  in eV
     ref.z = 0
 
+    print('before sim.particle_container')
     pc = sim.particle_container()
+    print('after sim.particle_container')
 
     particles = init_particles()
 
@@ -148,17 +155,10 @@ def create_sim():
         dx_podv, dy_podv, dt_podv, dpx_podv, dpy_podv, dpt_podv, qm_eev, bunch_charge_C
        )
 
+    print('after setting particles before exit create_sim')
+
     return sim
 
-def run_sim(lattice):
-
-    sim = create_sim()
-    
-    sim.lattice.extend(lattice)
-
-    sim.track_particles()
-
-    sim.finalize()
 
 #**********************************************************************
 
@@ -178,10 +178,14 @@ def run_k1():
 
     lattice = [monitor, elem, monitor]
 
-    run_sim(lattice)
-    
+    sim.lattice.extend(lattice)
+    print('run_k1 after sim.lattice.extend')
+
+    sim.track_particles()
+
     print('exit run_k1')
     sim.finalize()
+    del sim
     return
 
 #**********************************************************************
@@ -202,11 +206,16 @@ def run_k1s():
 
     lattice = [monitor, elem, monitor]
 
-    run_sim(lattice)
-    print("run_k1s: after sim = init_sim")
+    sim.lattice.extend(lattice)
+    print("run_k1s: after sim.extend_lattice")
+
+    sim.track_particles()
+    print("run_k1s: after sim.track_particles")
+
 
     print("exit run_k1s")
     sim.finalize()
+    del sim
     return
 
 #**********************************************************************
@@ -217,7 +226,6 @@ def main():
     run_k1()
 
     print("after run_k1 before run_k1s")
-    # create new sim
 
     run_k1s()
     print("after run_k1s")
