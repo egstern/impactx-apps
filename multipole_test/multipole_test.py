@@ -174,7 +174,9 @@ def set_lattice_k1(sim):
 
     lattice = [monitor, elem, monitor]
 
-    return lattice
+    sim.lattice.extend(lattice)
+
+    return
 
 
 #**********************************************************************
@@ -191,7 +193,9 @@ def set_lattice_k1s(sim):
 
     lattice = [monitor, elem, monitor]
 
-    return lattice
+    sim.lattice.extend(lattice)
+
+    return
 
 
 #**********************************************************************
@@ -202,7 +206,7 @@ def run_k1():
     sim = create_sim()
 
     print('before set_lattice_k1')
-    lattice = set_lattice_k1(sim)
+    set_lattice_k1(sim)
     print('after set_lattice_k1')
 
     lattice = sim.lattice.extend(lattice)
@@ -224,7 +228,7 @@ def run_k1s():
     sim = create_sim()
     
     print('before set_lattice_k1s')
-    lattice = set_lattice_k1s(sim)
+    set_lattice_k1s(sim)
     print('after set_lattice_k1s')
 
     sim.lattice.extend(lattice)
