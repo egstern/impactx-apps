@@ -22,6 +22,9 @@ betagamma0 = pbeam/mp_gev
 gamma0 = np.sqrt(betagamma0**1 + 1)
 beta0 = betagamma0/gamma0
 
+# global sim
+sim = ImpactX()
+
 def init_particles():
     # lp (local particles)
     lp = np.ndarray((32, 6))
@@ -90,8 +93,8 @@ def init_particles():
     return lp
 
 
-def init_and_run_sim(lattice):
-    sim = ImpactX()
+def init_sim():
+
     # set numerical parameters and IO control
     sim.particle_shape = 2  # B-spline order
     sim.space_charge = False
@@ -146,6 +149,10 @@ def init_and_run_sim(lattice):
         dx_podv, dy_podv, dt_podv, dpx_podv, dpy_podv, dpt_podv, qm_eev, bunch_charge_C
        )
 
+    return
+
+def run_sim(lattice):
+
     sim.lattice.extend(lattice)
 
     sim.track_particles()
@@ -156,6 +163,8 @@ def init_and_run_sim(lattice):
 
 def run_k1():
     print("enter run_k1")
+
+    init_sim()
 
     nm = "k1"
 
@@ -168,7 +177,7 @@ def run_k1():
 
     lattice = [monitor, elem, monitor]
 
-    init_and_run_sim(lattice)
+    run_sim(lattice)
     
     print('exit run_k1')
     pass
@@ -178,6 +187,8 @@ def run_k1():
 def run_k1s():
     print("enter run_k1s")
 
+    init_sim()
+    
     nm = "k1s"
 
     # create the beamline
@@ -189,7 +200,7 @@ def run_k1s():
 
     lattice = [monitor, elem, monitor]
 
-    init_and_run_sim(lattice)
+    run_sim(lattice)
     print("run_k1s: after sim = init_sim")
 
     print("exit run_k1s")
@@ -202,6 +213,8 @@ def main():
     print("before run_k1")
     run_k1()
     print("after run_k1 before run_k1s")
+    # create new sim
+    sim = ImpactX()
     run_k1s()
     print("after run_k1s")
 
