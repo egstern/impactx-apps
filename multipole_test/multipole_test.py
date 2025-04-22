@@ -90,7 +90,7 @@ def init_particles():
     return lp
 
 
-def init_sim():
+def init_and_run_sim(lattice):
     sim = ImpactX()
     # set numerical parameters and IO control
     sim.particle_shape = 2  # B-spline order
@@ -146,15 +146,19 @@ def init_sim():
         dx_podv, dy_podv, dt_podv, dpx_podv, dpy_podv, dpt_podv, qm_eev, bunch_charge_C
        )
 
-    return sim
+    sim.lattice.extend(lattice)
+
+    sim.track_particles()
+
+    sim.finalize()
 
 #**********************************************************************
 
 def run_k1():
     print("enter run_k1")
-    sim = init_sim()
+
     nm = "k1"
-    
+
     # create the beamline
     monitor = elements.BeamMonitor(f'monitor_{nm}.h5', backend="h5")
     # mp_str = 0.1;
@@ -163,11 +167,9 @@ def run_k1():
     elem = elements.Multipole(2, mp_str, 0.0, name=nm)
 
     lattice = [monitor, elem, monitor]
-    sim.lattice.extend(lattice)
 
-    sim.track_particles()
-
-    sim.finalize()
+    init_and_run_sim(lattice)
+    
     print('exit run_k1')
     pass
 
@@ -175,8 +177,7 @@ def run_k1():
 
 def run_k1s():
     print("enter run_k1s")
-    sim = init_sim()
-    print("run_k1s: after sim = init_sim")
+
     nm = "k1s"
 
     # create the beamline
@@ -187,14 +188,11 @@ def run_k1s():
     elem = elements.Multipole(2, 0.0, mp_str, name=nm)
 
     lattice = [monitor, elem, monitor]
-    sim.lattice.extend(lattice)
 
-    sim.track_particles()
+    init_and_run_sim(lattice)
+    print("run_k1s: after sim = init_sim")
 
-    sim.finalize()
-    print("before run_k1s!del sim")
-    del sim
-    print("secit run_k1s")
+    print("exit run_k1s")
     pass
 
 #**********************************************************************
