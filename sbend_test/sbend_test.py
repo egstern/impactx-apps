@@ -64,6 +64,8 @@ dx[1] = xoffs
 # particle 2 has a pt offset of 0.01
 dpt[2] = 0.01
 
+# particle 3 as xoffset opposite particle 1
+dx[3] = -xoffs
 
 if not Config.have_gpu:  # initialize using cpu-based PODVectors
     dx_podv = amr.PODVector_real_std()
