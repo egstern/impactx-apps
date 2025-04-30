@@ -68,5 +68,12 @@ sim.periods=10
 # run simulation
 sim.track_particles()
 
+pc = sim.particle_container()
+
+rbc = pc.reduced_beam_characteristics()
+
+print("dir(rbc): ", dir(rbc))
+print("rbc.keys(): ", rbc.keys())
+
 # clean shutdown
 sim.finalize()

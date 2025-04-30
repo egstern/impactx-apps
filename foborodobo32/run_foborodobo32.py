@@ -12,8 +12,10 @@ import mpi4py.MPI as MPI
 import numpy as np
 from scipy import constants
 import synergia
+from  syn2_to_impactx import syn2_to_impactx
 
-from impactx import ImpactX, distribution
+import amrex.space3d as amr
+from impactx import ImpactX, Config, distribution
 c = constants.c
 e = constants.e
 mp = synergia.foundation.pconstants.mp
@@ -147,31 +149,15 @@ ref.set_mass_MeV(refpart.get_mass()*1000.0) # MeV units ickk!
 kin_energy = (refpart.get_total_energy() - refpart.get_mass())*1000.0
 ref.set_kin_energy_MeV(kin_energy) #MeV units ickk!
 
-# 
-# These parameters come from Synergia
-beta_x =  33.37868284886467
-beta_y = 5.86716756292697
-alpha_x = -2.386902923794131
-alpha_y = 0.4352187248900877
-beta_cdt_dpop = 3840.976018049522 # will need to be converted to pt
-
 bunch.checkout_particles()
 local_part = bunch.get_particles_numpy()
 
 # convert from dp/p to dE/p
-pt = (np.sqrt( (momentum*(1 + local_part[:, 5]) )**2 + mp**2) - energy)/momentum
+pt = -(np.sqrt( (momentum*(1 + local_part[:, 5]) )**2 + mp**2) - energy)/momentum
 local_part[:, 5] = pt[:]
 
 # Load into ImpactX particle container
 pc = sim.particle_container()
-
-dx = local_part[:, 0]
-dpx = local_part[:, 1]
-dy = local_part[:, 2]
-dpy = local_part[:, 3]
-dt = local_part[:, 4]
-dpt = local_part[:, 5]]
-
 
 if not Config.have_gpu:  # initialize using cpu-based PODVectors
     dx_podv = amr.PODVector_real_std()
@@ -188,18 +174,26 @@ else:  # initialize on device using arena/gpu-based PODVectors
     dpy_podv = amr.PODVector_real_arena()
     dpt_podv = amr.PODVector_real_arena()
 
-for p_dx in dx:
+for p_dx in local_part[:,0]:
     dx_podv.push_back(p_dx)
-for p_dy in dy:
+for p_dy in local_part[:,2]:
     dy_podv.push_back(p_dy)
-for p_dt in dt:
+for p_dt in local_part[:,4]:
     dt_podv.push_back(p_dt)
-for p_dpx in dpx:
+for p_dpx in local_part[:,1]:
     dpx_podv.push_back(p_dpx)
-for p_dpy in dpy:
+for p_dpy in local_part[:,3]:
     dpy_podv.push_back(p_dpy)
-for p_dpt in dpt:
+for p_dpt in local_part[:,5]:
     dpt_podv.push_back(p_dpt)
+
+# don't need the synergia bunch anymore. Delete it
+# so there aren't any Kokkos remnants hanging around
+del dist
+del corr_matrix
+del local_part
+del bunch
+del bunchsim
 
 # charge to mass ratio
 qm_eev = 1.0/(1.0e-9*mp)
@@ -208,11 +202,14 @@ pc.add_n_particles(
     dx_podv, dy_podv, dt_podv, dpx_podv, dpy_podv, dpt_podv, qm_eev, bunch_charge_C
 )
 
-sim.lattice.extend(syn2_to_impactx(lattice)
-# design the accelerator lattice
-sim.lattice.load_file("fodo.madx", nslice=25)
+# insert the converted MAD-X->Synergia lattice
+sim.lattice.extend(syn2_to_impactx(lattice))
+
+print('impactx lattice:')
+print(sim.lattice)
 
 # run simulation
+sim.periods=1
 sim.track_particles()
 
 # clean shutdown
