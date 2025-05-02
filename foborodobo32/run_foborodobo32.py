@@ -106,8 +106,8 @@ sim.init_grids()
 
 
 # calculate parameters for initial distribution
-stdx = np.sqrt(emit_x/(4*beta_x) + init_std_dpop**2 * disp_x**2)
-stdy = np.sqrt(emit_y/(4*beta_y))
+stdx = np.sqrt(emit_x*beta_x/4 + init_std_dpop**2 * disp_x**2)
+stdy = np.sqrt(emit_y*beta_y/4)
 
 map = synergia.simulation.Lattice_simulator.get_linear_one_turn_map(lattice)
 print('one turn map')

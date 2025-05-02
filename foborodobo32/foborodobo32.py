@@ -416,8 +416,8 @@ def main():
         sim.reg_diag_per_turn(synergia.bunch.Diagnostics_full2("diag_b%03d.h5"%bunch_num),
                               bunch_idx = bunch_num)
 
-        if opts.step_basic:
-            sim.reg_diag_per_step(synergia.bunch.Diagnostics_basic("mi_step_basic_b%03d.h5"%bunch_num),
+        if opts.step_diag:
+            sim.reg_diag_per_step(synergia.bunch.Diagnostics_full2("stepdiag_b%03d.h5"%bunch_num),
                     bunch_idx = bunch_num)
 
         if opts.particles:
@@ -434,7 +434,7 @@ def main():
         # each processor will save tracks/proc tracks
         if opts.tracks:
             trkfile = 'tracks_b%03d.h5'%bunch_num
-            sim.reg_diag_per_turn(synergia.bunch.Diagnostics_bulk_track(trkfile, opts.tracks), bunch_idx = bunch_num)
+            sim.reg_diag_per_step(synergia.bunch.Diagnostics_bulk_track(trkfile, opts.tracks), bunch_idx = bunch_num)
 
     # max simulation turns
     sim.set_max_turns(opts.turns)
