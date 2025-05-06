@@ -1,0 +1,9 @@
+! Just a small channel so I can count steps
+
+q: quadrupole, l=2.0, k1=0.05;
+
+model: sequence, l=4.0, refer=entry;
+q, at = 1.0;
+endsequence;
+
+beam, particle=proton, energy=0.8+pmass;
