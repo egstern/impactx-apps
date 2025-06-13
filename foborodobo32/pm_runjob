@@ -1,0 +1,66 @@
+#!/bin/bash -l
+
+__account{{#SBATCH -A @@account@@}}{{}}__
+#SBATCH -N @@numnode@@
+#SBATCH -n @@numproc@@
+__queue{{#SBATCH -q @@queue@@}}{{}}__
+__walltime{{#SBATCH -t @@walltime@@}}{{}}__
+
+#SBATCH -J ImpactX
+
+#SBATCH -C gpu
+#SBATCH --exclusive
+# ideally single:1, but NERSC cgroups issue
+#SBATCH --gpu-bind=none
+#SBATCH --ntasks-per-gpu=1
+#SBATCH --mail-user=egstern@fnal.gov
+#SBATCH --mail-type=ALL
+#SBATCH -o ImpactX-%j.o
+#SBATCH -e ImpactX-%j.e
+
+# The following line is needed to use submit=1
+#synergia_workflow_submitter:sbatch
+
+# pin to closest NIC to GPU
+export MPICH_OFI_NIC_POLICY=GPU
+
+# GPU-aware MPI optimizations
+GPU_AWARE_MPI="amrex.use_gpu_aware_mpi=1"
+
+# CUDA visible devices are ordered inverse to local task IDs
+#   Reference: nvidia-smi topo -m
+
+module load cmake/3.24.3
+module load PrgEnv-gnu
+module load cudatoolkit/12.4
+module load craype-accel-nvidia80
+module load cray-fftw
+module load craype-accel-nvidia80
+module load cray-python/3.11.5 # to match impactx build
+module load cray-hdf5-parallel/1.12.2.9 # to match impactx build
+
+export CRAY_ACCEL_TARGET=nvidia80
+
+IX_ROOT=$CFS/m4272/egstern/sw/perlmutter/gpu/venvs/impactx
+export IX_ROOT
+source $IX_ROOT/bin/activate
+
+export S2DIR=$IX_ROOT
+export SYNERGIA2DIR=$IX_ROOT/lib
+
+export SLURM_CPU_BIND="cores"
+export MPICH_GPU_SUPPORT_ENABLED=1
+
+# just in case you're reading a foreign HDF5 file.
+export HDF5_DISABLE_VERSION_CHECK=2
+
+echo "executing command:"
+echo 'srun --cpu-bind=cores bash -c "
+    export CUDA_VISIBLE_DEVICES=\$((3-SLURM_LOCALID));
+    python @@script@@ @@args@@ ${GPU_AWARE_MPI}" \
+  > output.txt
+'
+
+srun --cpu-bind=cores bash -c "
+    export CUDA_VISIBLE_DEVICES=\$((3-SLURM_LOCALID));
+    python @@script@@ @@args@@ ${GPU_AWARE_MPI}"

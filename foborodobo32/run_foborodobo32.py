@@ -16,17 +16,25 @@ from  syn2_to_impactx import syn2_to_impactx
 
 import amrex.space3d as amr
 from impactx import ImpactX, Config, distribution
+
+#from run_foborodobo32_options import opts
+
 c = constants.c
 e = constants.e
 mp = synergia.foundation.pconstants.mp
 
 sim = ImpactX()
 
-bunch_charge_C = e * 0.5e10
-npart = 10000  # number of macro particles
-emit_x = 8.0e-6 # 8 pi mm-mr sensible 90% emittance
+#npart = opts.macroparticles  # number of macro particles
+#emit_x = opts.emitx # 8 pi mm-mr sensible 90% emittance
+#emit_y = opts.emity
+#init_std_dpop = opts.stddpop
+
+npart = 1048576
+emit_x = 8.0e-6
 emit_y = 8.0e-6
 init_std_dpop = 1.0e-4
+bunch_charge_C = e * 0.5e10
 
 myrank = MPI.COMM_WORLD.rank
 
@@ -34,12 +42,12 @@ myrank = MPI.COMM_WORLD.rank
 lattice = synergia.lattice.MadX_reader().get_lattice('model', 'foborodobo32.madx')
 
 refpart = lattice.get_reference_particle()
-if myrank == 0:
-    energy = refpart.get_total_energy()
-    momentum = refpart.get_momentum()
-    gamma = refpart.get_gamma()
-    beta = refpart.get_beta()
+energy = refpart.get_total_energy()
+momentum = refpart.get_momentum()
+gamma = refpart.get_gamma()
+beta = refpart.get_beta()
 
+if myrank == 0:
     print("Beam parameters")
     print("energy: ", energy)
     print("momentum: ", momentum)
@@ -103,7 +111,6 @@ sim.slice_step_diagnostics = True
 sim.init_grids()
 
 # load a 800 MeV KE proton as specified in the MAD-X file
-
 
 # calculate parameters for initial distribution
 stdx = np.sqrt(emit_x*beta_x/4 + init_std_dpop**2 * disp_x**2)
@@ -203,7 +210,7 @@ pc.add_n_particles(
 )
 
 # insert the converted MAD-X->Synergia lattice
-sim.lattice.extend(syn2_to_impactx(lattice))
+sim.lattice.extend(syn2_to_impactx(lattice, True, True))
 
 print('impactx lattice:')
 print(sim.lattice)

@@ -168,7 +168,7 @@ def cnv_octupole(elem):
         OCunit = [ d1, ocelem, d2]
         return OCunit
 
-def syn2_to_impactx(lattice):
+def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
     # lattice must have a reference particle
     try:
         refpart = lattice.get_reference_particle()
@@ -179,9 +179,10 @@ def syn2_to_impactx(lattice):
 
     impactx_lattice = []
 
-    # Always begin with a monitor element
-    monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
-    impactx_lattice.append(monitor)
+    # begin with a monitor element if requested
+    if init_monitor:
+        monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
+        impactx_lattice.append(monitor)
 
     # peel elements from the synergia lattice, converting to ImpactX elements
     for elem in lattice.get_elements():
@@ -229,6 +230,11 @@ def syn2_to_impactx(lattice):
             print('warning: unsupported element: ', etype)
 
         pass
+
+    if final_monitor and init_monitor:
+        # can't have final monitor if there was no initial monitor to define
+        # the monitor element
+        impactx_lattice.append(monitor)
 
     return impactx_lattice
     
