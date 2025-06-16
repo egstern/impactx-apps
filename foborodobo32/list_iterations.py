@@ -11,7 +11,7 @@ def main():
     iterations = list(series.iterations)
     print("iterations in file: ", iterations)
     series.close()
-    pass
+    return
 
 if __name__ == "__main__":
     main()
