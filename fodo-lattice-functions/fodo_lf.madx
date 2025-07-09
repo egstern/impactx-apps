@@ -1,0 +1,8 @@
+call, file="fodo.madx";
+
+
+select, range=#b/#e;
+select,flag="twiss",column=name,keyword,s,
+                                      betx,bety,alfx,alfy,dx,dpx,dy,dpy;
+
+twiss, chrom, file=fodo_lf.out;
