@@ -42,7 +42,7 @@ rod_charge = 0.5e11 # about a booster bunch
 
 rod_radius = 1.0e-6  # radius of rod of charge
 probe = 1.0e-3 # offset of probe particle
-
+probe = 5.0e-6
 #**********************************************************************
 
 def init_particles():
@@ -105,9 +105,9 @@ def init_particles():
         lpos = lpos+24
 
     print('first part of lpos:')
-    print(lp[:25, 4])
+    print(lp[:25, 4]*beta0)
     print('last part of lpos:')
-    print(lp[-1-25:, 4])
+    print(lp[-1-25:, 4]*beta0)
     return lp
 
 

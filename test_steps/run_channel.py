@@ -155,10 +155,30 @@ pc.add_n_particles(
 )
 
 # insert the converted MAD-X->Synergia lattice
-sim.lattice.extend(syn2_to_impactx(lattice))
+IX_lattice = syn2_to_impactx(lattice)
+sim.lattice.extend(IX_lattice)
 
 print('impactx lattice:')
 print(sim.lattice)
+print(dir(sim.lattice))
+for e in sim.lattice:
+    print(e)
+    print()
+
+# Cannot I address elements by index?
+elem2 = None
+i = 0
+for e in sim.lattice:
+    if i == 1:
+        elem2 = e
+        break
+    else:
+        i = i + 1
+
+print('second lattice element2: ', elem2)
+
+# is this the same object as what I put into the sim?
+print('same? ', IX_lattice[1] is elem2)
 
 # run simulation
 sim.periods=1
