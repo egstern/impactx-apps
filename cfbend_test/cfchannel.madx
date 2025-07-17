@@ -1,0 +1,11 @@
+totL = 474.202752;
+avgangle = 2*pi/96;
+avgR = totL/(2*pi);
+avgl = avgangle*avgR;
+cf: sbend, angle=avgangle, l=avgl, k1=1.0e-100;
+
+channel: sequence, l=avgl, refer=entry;
+cf, at=0.0;
+endsequence;
+
+beam, particle=proton, energy=0.8+pmass;

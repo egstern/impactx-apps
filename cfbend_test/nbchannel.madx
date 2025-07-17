@@ -1,0 +1,12 @@
+Flen = 3.0;  ! focusing magnet length
+Fk1 = 0.055; ! focusing magnet gradient
+FR = 40.0;   ! focusing magnet radius of curvature
+Fang = Flen/FR; ! angle
+
+cf: sbend, angle=Fang, l=Flen, k1=0.0;
+
+channel: sequence, l=Flen, refer=entry;
+cf, at=0.0;
+endsequence;
+
+beam, particle=proton, energy=0.8+pmass;

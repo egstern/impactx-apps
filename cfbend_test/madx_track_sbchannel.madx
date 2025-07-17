@@ -1,0 +1,65 @@
+set, format=22.16g;
+
+call, file="sbchannel.madx";
+
+
+show, beam;
+use, sequence=channel;
+
+eref := pmass + 0.8;
+pref := sqrt(eref**2 - pmass**2);
+dpop := 5e-3;
+pnew := pref*(1+dpop);
+enew := sqrt(pnew**2 + pmass**2);
+dE := enew - eref;
+
+! madx can't seem to calculate ptinit
+dE = 0.006163561731871825;
+pref = 1.4632960307470255;
+
+show pmass, eref, pref, dpop, pnew, enew, dE;
+
+ptc_create_universe;
+ptc_create_layout,model=2,method=6,nst=10,time=true,exact;
+ptc_start, x=-0.005,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.004,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.003,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.002,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.001,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.000,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.001,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.002,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.003,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.004,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.005,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+
+
+ptc_track, closed_orbit=false,icase=6,maxaper={10.0,10.0,10.0,10.0,10.0,10.0},file=sbchannel.txt, onetable;
+ptc_track_end;
+ptc_end;
+
+call, file="nbchannel.madx";
+
+show, beam;
+use, sequence=channel;
+
+ptc_create_universe;
+ptc_create_layout,model=2,method=6,nst=10,time=true,exact;
+ptc_start, x=-0.005,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.004,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.003,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.002,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.001,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=-0.000,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.001,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.002,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.003,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.004,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+ptc_start, x=0.005,px=0.0,y=0.0,py=0.0,t=0.0,pt=dE/pref;
+
+
+ptc_track, closed_orbit=false,icase=6,maxaper={10.0,10.0,10.0,10.0,10.0,10.0},file=nbchannel.txt, onetable;
+ptc_track_end;
+ptc_end;
+
+
