@@ -1,0 +1,74 @@
+set, format=22.16g;
+
+call, file="sbchannel.madx";
+
+
+show, beam;
+use, sequence=channel;
+
+eref = pmass + 0.8;
+pref = sqrt(eref^2 - pmass^2);
+dpop = 5e-3;
+pnew = pref*(1+dpop);
+enew = sqrt(pnew^2 + pmass^2);
+dE = enew - eref;
+
+
+show pmass, eref, pref, dpop, pnew, enew, dE;
+
+s15 = (sqrt(6) - sqrt(2))/4; ! sin 15 degrees
+c15 = (sqrt(6) + sqrt(2))/4; ! cos 15 degrees
+s30 = 0.5; ! sin 30 degrees
+c30 = sqrt(3)/2; ! cos 30 degrees
+s45 = sqrt(2)/2;  ! sin 45 degrees
+c45 = s45; ! cos 45 degrees
+s60 = c30; ! sin 60 degrees
+c60 = s30; ! cos 60 degrees
+s75 = c15; ! sin 75 degrees
+c75 = s15; ! cos 75 degrees
+
+
+d = 0.005;
+
+ptc_create_universe;
+ptc_create_layout,model=2,method=6,nst=10,time=true,exact;
+
+! quadrant I
+ptc_start, x=d, y=0, pt=dE/pref;
+ptc_start, x=d*c15, y=d*s15, pt=dE/pref;
+ptc_start, x=d*c30, y=d*s30, pt=dE/pref;
+ptc_start, x=d*c45, y=d*s45, pt=dE/pref;
+ptc_start, x=d*c60, y=d*s60, pt=dE/pref;
+ptc_start, x=d*c75, y=d*s75, pt=dE/pref;
+
+! quadrant II
+ptc_start, y=d, x=0, pt=dE/pref;
+ptc_start, y=d*c15, x=-d*s15, pt=dE/pref;
+ptc_start, y=d*c30, x=-d*s30, pt=dE/pref;
+ptc_start, y=d*c45, x=-d*s45, pt=dE/pref;
+ptc_start, y=d*c60, x=-d*s60, pt=dE/pref;
+ptc_start, y=d*c75, x=-d*s75, pt=dE/pref;
+
+! quadrant III
+ptc_start, x=-d, y=0, pt=dE/pref;
+ptc_start, x=-d*c15, y=-d*s15, pt=dE/pref;
+ptc_start, x=-d*c30, y=-d*s30, pt=dE/pref;
+ptc_start, x=-d*c45, y=-d*s45, pt=dE/pref;
+ptc_start, x=-d*c60, y=-d*s60, pt=dE/pref;
+ptc_start, x=-d*c75, y=-d*s75, pt=dE/pref;
+
+! quadrant IV
+ptc_start, y=-d, x=0, pt=dE/pref;
+ptc_start, y=-d*c15, x=d*s15, pt=dE/pref;
+ptc_start, y=-d*c30, x=d*s30, pt=dE/pref;
+ptc_start, y=-d*c45, x=d*s45, pt=dE/pref;
+ptc_start, y=-d*c60, x=d*s60, pt=dE/pref;
+ptc_start, y=-d*c75, x=d*s75, pt=dE/pref;
+
+
+ptc_track, closed_orbit=false,icase=6,maxaper={10.0,10.0,10.0,10.0,10.0,10.0},file=cfbend.txt, onetable;
+ptc_track_end;
+ptc_end;
+
+
+
