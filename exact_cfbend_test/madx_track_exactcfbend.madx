@@ -1,0 +1,22 @@
+set, format=22.16g;
+
+cfbend: sbend, angle=pi/36, l=4.0;
+channel: sequence, l=4.0, refer=entry;
+cfbend, at=0.0;
+endsequence;
+
+beam, particle=proton, energy=0.8+pmass;
+
+show, beam;
+
+use, sequence=channel;
+
+
+ptc_create_universe;
+ptc_create_layout,model=2,method=6,nst=10,time=true,exact;
+ptc_start, pt=1.0e-3;
+
+ptc_track, closed_orbit=false,icase=6,maxaper={10.0,10.0,10.0,10.0,10.0,10.0},file=bendchannel.txt, onetable;
+ptc_track_end;
+ptc_end;
+
