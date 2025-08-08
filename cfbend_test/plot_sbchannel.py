@@ -130,4 +130,26 @@ plt.legend(loc='best')
 plt.xlabel('init x')
 plt.ylabel('x')
 
+def rel_diff(x, y):
+    return (x-y)/(x+y)
+
+plt.figure()
+plt.title('rel difference xp synergia with k1 vs. madx')
+plt.plot(initx,rel_diff(final_xpa, sb_madx[:, 1]), 'o', label='relative diff')
+plt.xlabel('init x')
+plt.ylabel('rel diff')
+
+print('relative diff synergia vs. mad with k1')
+print(rel_diff(final_xpa, sb_madx[:, 1]))
+
+plt.figure()
+plt.title('rel difference xp synergia without k1 vs. madx')
+plt.plot(initx, rel_diff(final_xpb, nb_madx[:, 1]), 'o', label='rel diff')
+plt.xlabel('init x')
+plt.ylabel('rel diff')
+
+print('relative diff synergia vs. mad without k1')
+print(rel_diff(final_xpb, nb_madx[:, 1]))
+
+
 plt.show()
