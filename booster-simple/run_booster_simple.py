@@ -12,7 +12,7 @@ import mpi4py.MPI as MPI
 import numpy as np
 from scipy import constants
 import synergia
-from  syn2_to_impactx import syn2_to_impactx
+from syn2_to_impactx import syn2_to_impactx
 
 import amrex.space3d as amr
 from impactx import ImpactX, Config, distribution
@@ -25,15 +25,21 @@ mp = synergia.foundation.pconstants.mp
 
 sim = ImpactX()
 
-#npart = opts.macroparticles  # number of macro particles
-#emit_x = opts.emitx # 8 pi mm-mr sensible 90% emittance
-#emit_y = opts.emity
-#init_std_dpop = opts.stddpop
+npart = opts.macroparticles  # number of macro particles
+emit_x = opts.emitx # 8 pi mm-mr sensible 90% emittance
+emit_y = opts.emity
+init_std_dpop = opts.stddpop
+harmonic_number = opts.harmonic_number
 
-npart = 1048576
-emit_x = 8.0e-6
-emit_y = 8.0e-6
-init_std_dpop = 1.0e-4
+turns = opts.turns
+
+DEBUG=True
+
+#npart = 1048576
+#emit_x = 8.0e-6
+#emit_y = 8.0e-6
+#init_std_dpop = 1.0e-4
+
 bunch_charge_C = e * 0.5e10
 
 myrank = MPI.COMM_WORLD.rank
@@ -88,10 +94,41 @@ def set_rf(lattice, voltage, harmno, bunch_phase_offset, phase, above_transition
 
 #-------------------------------------------------------------------------------
 
+def set_adjust_markers(lattice):
+    for elem in lattice.get_elements():
+        # focussing quads are in the cps with name qsxx
+        # defocussing quads in  the cpl with name qlxx
+        # focussing sextupoles are in the cps with name sxsxx
+        # defocussing quads in  the cpl with name sxlxx
+        if elem.get_name() == "qsxx":
+            elem.set_marker(synergia.lattice.marker_type.h_tunes_corrector)
+        elif elem.get_name() == "qlxx":
+            elem.set_marker(synergia.lattice.marker_type.v_tunes_corrector)
+        elif elem.get_name() == "sxsxx":
+            elem.set_marker(synergia.lattice.marker_type.h_chrom_corrector)
+        elif elem.get_name() == "sxlxx":
+            elem.set_marker(synergia.lattice.marker_type.v_chrom_corrector)
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+
+def set_tunes_and_chromaticities(lattice, xtune, ytune, xchrom, ychrom, logger):
+
+    set_adjust_markers(lattice)
+    
+    print(f'Setting  xtune: {xtune}, ytune: {ytune}', file=logger)
+    synergia.simulation.Lattice_simulator.adjust_tunes(lattice, xtune, ytune, 1.0e-6)
+
+    print(f'Setting xchrom {xchrom}, ychrom: {ychrom}', file=logger)
+    synergia.simulation.Lattice_simulator.adjust_chromaticities(lattice, xchrom, ychrom)
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+
 def get_lattice():
     # read the lattice in from a MadX sequence file
     lattice_raw = synergia.lattice.MadX_reader().get_lattice(lattice_line, lattice_file)
-    lattice.set_all_string_attribute("extractor_type", "libff")
+    lattice_raw.set_all_string_attribute("extractor_type", "libff")
 
     if opts.enable_rf:
         lattice_with_rf = set_rf(lattice_raw, voltage=opts.rf_volt,
@@ -102,11 +139,18 @@ def get_lattice():
         # tune the lattice (set frequency)
         synergia.simulation.Lattice_simulator.tune_circular_lattice(lattice_raw)
 
-
-
-    return lattice
+    return lattice_raw
 
 ################################################################################
+#-------------------------------------------------------------------------------
+
+def save_json_lattice(lattice, jlfile='init_lattice.json'):
+    # save the lattice, assume I am the only task running this
+    with open(jlfile, 'w') as f:
+        print(lattice.as_json(), file=f)
+    return
+
+#-------------------------------------------------------------------------------
 
 def main():
 
@@ -156,20 +200,62 @@ def main():
         print('dispersion prime_x: ', dprime_x)
         print()
     
-
     # Get original tunes and chromaticities
     rf_freq = synergia.simulation.Lattice_simulator.get_rf_frequency(lattice)
-    (xtune, ytune, orbit_cdt) = synergia.simulation.Lattice_simulator.calculate_tune_and_cdt(lattice)
+    (orig_xtune, orig_ytune, orig_orbit_cdt) = synergia.simulation.Lattice_simulator.calculate_tune_and_cdt(lattice)
+
     chrom = synergia.simulation.Lattice_simulator.get_chromaticities(lattice)
-    hchrom = chrom.horizontal_chromaticity
-    vchrom = chrom.vertical_chromaticity
+    orig_hchrom = chrom.horizontal_chromaticity
+    orig_vchrom = chrom.vertical_chromaticity
     if myrank == 0:
-        print("Orbit length: ", beta*orbit_cdt, "m")
+        print("Orbit length: ", beta*orig_orbit_cdt, "m")
         print("RF frequency: ", rf_freq, "Hz")
-        print("horizontal chromaticity: ", hchrom)
-        print("vertical chromaticity: ", vchrom)
+        print("original horizontal tune: ", orig_xtune)
+        print("original vertical tune: ", orig_ytune)
+        print("original horizontal chromaticity: ", orig_hchrom)
+        print("original vertical chromaticity: ", orig_vchrom)
         print()
 
+    target_xtune = orig_xtune
+    target_ytune = orig_ytune
+    target_hchrom = orig_hchrom
+    target_vchrom = orig_vchrom
+    if opts.set_xtune:
+        target_xtune = opts.set_xtune
+    if opts.set_ytune:
+        target_ytune = opts.set_ytune
+
+    if opts.set_xchrom:
+        target_xchrom = opts.set_xchrom
+    if opts.set_ychrom:
+        target_ychrom = opts.set_ychrom
+
+    if myrank == 0:
+        print(f'setting tunes: ({target_xtune}, {target_ytune})')
+        print(f'setting chromaticities: ({target_xchrom}, {target_ychrom})')
+
+    set_tunes_and_chromaticities(lattice, target_xtune, target_ytune, target_xchrom, target_ychrom, logger)
+
+    # tunes and chromaticities calculated after adjustment:
+    (final_xtune, final_ytune, orig_orbit_cdt) = synergia.simulation.Lattice_simulator.calculate_tune_and_cdt(lattice)
+
+    final_chrom = synergia.simulation.Lattice_simulator.get_chromaticities(lattice)
+    final_hchrom = final_chrom.horizontal_chromaticity
+    final_vchrom = final_chrom.vertical_chromaticity
+
+    if myrank == 0:
+        print(f'tunes after adjustment: ({final_xtune}, {final_ytune})')
+        print(f'chroms after adjustment: ({final_hchrom}, {final_vchrom})')
+        pass
+
+    # save the doctored lattice
+    if myrank == 0:
+        with open('cooked_booster_lattice.txt', 'w') as f:
+            print(lattice, file=f)
+        save_json_lattice(lattice, 'cooked_booster_lattice.json')
+
+    if myrank == 0:
+        lattice.export_madx_file('cooked_booster.madx', True)
 
     if myrank == 0:
         print("generating matched particle distribution")
@@ -237,6 +323,26 @@ def main():
     bunch.checkout_particles()
     local_part = bunch.get_particles_numpy()
 
+    if opts.test_particles:
+        bunch.checkout_particles()
+        dx = stdx/10
+        dy = stdy/10
+        for i in range(51):
+            local_part[i, 0] = i*dx
+            local_part[i, 1:6] = 0.0
+        for i in range(51, 102):
+            local_part[i, 2] = i*dy
+            local_part[i, 0:2] = 0.0
+            local_part[i, 3:6] = 0.0
+        local_part[0, 0] = 1.0e-9 # small offset close to origin for
+        local_part[51, 2] = 1.0e-9 # both x and y to get a good frequency
+
+    if myrank == 0:
+        if opts.test_particles:
+            print("test particles are present")
+        else:
+            print("test particles are not present")
+
     # convert from dp/p to dE/p
     pt = -(np.sqrt( (momentum*(1 + local_part[:, 5]) )**2 + mp**2) - energy)/momentum
     local_part[:, 5] = pt[:]
@@ -288,14 +394,27 @@ def main():
     )
 
     # insert the converted MAD-X->Synergia lattice
-    sim.lattice.extend(syn2_to_impactx(lattice, True, True))
+    init_monitor = opts.initial_monitor
+    final_monitor = opts.final_monitor
+    ix_lattice = syn2_to_impactx(lattice, init_monitor, final_monitor)
+
+    # the monitor is the last element in the list. Run a 1 turn simulation
+    # with just the monitor to get the initial distribution
+    if final_monitor:
+        sim.lattice.append(ix_lattice[-1])
+        sim.periods=1
+        sim.track_particles()
+
+    sim.lattice.clear()
+    sim.lattice.extend(ix_lattice)
 
     print('impactx lattice:')
     print(sim.lattice)
 
     # run simulation
-    sim.periods=1
-    sim.track_particles()
+    if opts.turns > 0:
+        sim.periods=opts.turns
+        sim.track_particles()
     
     # clean shutdown
     sim.finalize()

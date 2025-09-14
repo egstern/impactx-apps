@@ -13,8 +13,8 @@ import impactx
 ET = synergia.lattice.element_type
 
 nslice_by_elem_type = {
-    'drift': 1,
-    'sbend': 1,
+    'drift': 16,
+    'sbend': 16,
     'quadrupole': 1,
     'sextupole': 1,
     'octupole': 1,
@@ -53,12 +53,12 @@ def cnv_sbend(elem):
     cf = (k1 != 0.0) or (k2 != 0.0) or (k1s != 0.0)
 
     if e1 != 0.0:
-        us_dipedge = impactx.elements.Dipedge(e1, radius_of_curvature, \
+        us_dipedge = impactx.elements.DipEdge(e1, radius_of_curvature, \
                                               hgap, fint, \
                                               name = nm+"_usedge")
         pass
     if e2 != 0.0:
-        ds_dipedge = impactx.elements.Dipedge(-e2, radius_of_curvature, \
+        ds_dipedge = impactx.elements.DipEdge(-e2, radius_of_curvature, \
                                               hgap, fint, \
                                               name = nm+"_dsedge")
         pass
@@ -79,15 +79,15 @@ def cnv_sbend(elem):
     else:
         # CF bend
         if (k2 == 0.0):
-            knormal = [1/radius_of_curvature, k1, k2]
-            kskew = [0,0, k1s, 0.0]
-        else:
             knormal = [1/radius_of_curvature, k1]
-            kskew = [0,0, k1s]
+            kskew = [0.0, k1s, 0.0]
+        else:
+            knormal = [1/radius_of_curvature, k1, k2]
+            kskew = [0.0, 0.0, k1s]
         main_bend_elem = impactx.elements.ExactCFbend(ds=length, \
                                                       k_normal=knormal, \
                                                       k_skew = kskew, \
-                                                      order=2, \
+                                                      int_order=2, \
                                                       nslice=nslice_by_elem_type['sbend'], \
                                                       name=nm)
         
@@ -96,7 +96,7 @@ def cnv_sbend(elem):
     # collect the pieces
     ixelem = []
     if us_dipedge:
-        ixelem.append(us_depedge)
+        ixelem.append(us_dipedge)
         pass
     ixelem.append(main_bend_elem)
     if ds_dipedge:
@@ -127,13 +127,22 @@ def cnv_rbend(elem):
     ds_dipedge = None
     cf = (k1 != 0.0) or (k2 != 0.0) or (k1s != 0.0)
 
+    # for RBENDS, the dipedge angles are relative to bendangle/2 and
+    # have opposite sense depending on the sign of the bend.
+    if bendangle > 0.0:
+        e1 = e1 + bendangle/2
+        e2 = e2 + bendangle/2
+    else:
+        e1 = -e1 - bendangle/2
+        e2 = -e2 - bendangle/2
+
     if e1 != 0.0:
-        us_dipedge = impactx.elements.Dipedge(e1, radius_of_curvature,
+        us_dipedge = impactx.elements.DipEdge(e1, radius_of_curvature,
                                               hgap, fint,
                                               name = nm+"_usedge")
         pass
     if e2 != 0.0:
-        ds_dipedge = impactx.elements.Dipedge(-e2, radius_of_curvature,
+        ds_dipedge = impactx.elements.DipEdge(-e2, radius_of_curvature,
                                               hgap, fint,
                                               name = nm+"_dsedge")
         pass
@@ -154,15 +163,15 @@ def cnv_rbend(elem):
     else:
         # CF bend
         if (k2 == 0.0):
-            knormal = [1/radius_of_curvature, k1, k2]
-            kskew = [0,0, k1s, 0.0]
-        else:
             knormal = [1/radius_of_curvature, k1]
-            kskew = [0,0, k1s]
+            kskew = [0.0, k1s]
+        else:
+            knormal = [1/radius_of_curvature, k1, k2]
+            kskew = [0.0, 0.0, k1s]
         main_bend_elem = impactx.elements.ExactCFbend(ds=length,
                                                       k_normal=knormal,
                                                       k_skew = kskew,
-                                                      order=2,
+                                                      int_order=2,
                                                       nslice=nslice_by_elem_type['sbend'],
                                                       name=nm)
         
@@ -171,7 +180,7 @@ def cnv_rbend(elem):
     # collect the pieces
     ixelem = []
     if us_dipedge:
-        ixelem.append(us_depedge)
+        ixelem.append(us_dipedge)
         pass
     ixelem.append(main_bend_elem)
     if ds_dipedge:
@@ -278,7 +287,7 @@ def cnv_sextupole(elem):
     kskew = np.array([0, 0, k2s])
 
     sxelem = impactx.elements.ExactMultipole(ds=L, k_normal=knorm, \
-                                             k_skew=kskew, order=4, \
+                                             k_skew=kskew, int_order=4, \
                                              nslice=nslice_by_elem_type['sextupole'],
                                              name=elem.get_name()
                                              )
@@ -314,9 +323,9 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
 
     impactx_lattice = []
 
-    # begin with a monitor element if requested
+    # define the monitor element that may be used
+    monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
     if init_monitor:
-        monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
         impactx_lattice.append(monitor)
 
     # peel elements from the synergia lattice, converting to ImpactX elements
@@ -326,7 +335,17 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
         if etype == ET.drift:
             impactx_lattice.append(cnv_drift(elem))
         elif etype == ET.sbend:
-            impactx_lattice.append(cnv_sbend(elem))
+            bndelem = cnv_sbend(elem)
+            if isinstance(bndelem, list):
+                impactx_lattice.extend(bndelem)
+            else:
+                impactx_lattice.append(bndelem)
+        elif etype == ET.rbend:
+            bndelem = cnv_rbend(elem)
+            if isinstance(bndelem, list):
+                impactx_lattice.extend(bndelem)
+            else:
+                impactx_lattice.append(bndelem)
         elif etype == ET.quadrupole:
             impactx_lattice.append(cnv_quadrupole(elem))
         elif etype == ET.sextupole:
@@ -366,9 +385,7 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
 
         pass
 
-    if final_monitor and init_monitor:
-        # can't have final monitor if there was no initial monitor to define
-        # the monitor element
+    if final_monitor:
         impactx_lattice.append(monitor)
 
     return impactx_lattice
