@@ -12,7 +12,7 @@ import mpi4py.MPI as MPI
 import numpy as np
 from scipy import constants
 import synergia
-from syn2_to_impactx import syn2_to_impactx
+from syn2_to_impactx import syn2_to_impactx, unroll_impactx_lattice
 
 import amrex.space3d as amr
 from impactx import ImpactX, Config, distribution
@@ -177,28 +177,6 @@ def main():
         print("beta: ", beta)
         print()
 
-    synergia.simulation.Lattice_simulator.tune_circular_lattice(lattice)
-    synergia.simulation.Lattice_simulator.CourantSnyderLatticeFunctions(lattice)
-    synergia.simulation.Lattice_simulator.calc_dispersions(lattice)
-    lf = lattice.get_elements()[-1].lf
-    beta_x = lf.beta.hor
-    alpha_x = lf.alpha.hor
-    beta_y = lf.beta.ver
-    alpha_y = lf.alpha.ver
-    psi_x = lf.psi.hor
-    psi_y = lf.psi.ver
-    disp_x = lf.dispersion.hor
-    dprime_x = lf.dPrime.hor
-
-    if myrank == 0:
-        print('lattice functions')
-        print('beta_x: ', beta_x)
-        print('alpha_x', alpha_x)
-        print('beta_y: ', beta_y)
-        print('alpha_y: ', alpha_y)
-        print('dispersion_x: ', disp_x)
-        print('dispersion prime_x: ', dprime_x)
-        print()
     
     # Get original tunes and chromaticities
     rf_freq = synergia.simulation.Lattice_simulator.get_rf_frequency(lattice)
@@ -248,13 +226,35 @@ def main():
         print(f'chroms after adjustment: ({final_hchrom}, {final_vchrom})')
         pass
 
-    # save the doctored lattice
+    synergia.simulation.Lattice_simulator.tune_circular_lattice(lattice)
+    synergia.simulation.Lattice_simulator.CourantSnyderLatticeFunctions(lattice)
+    synergia.simulation.Lattice_simulator.calc_dispersions(lattice)
+    lf = lattice.get_elements()[-1].lf
+    beta_x = lf.beta.hor
+    alpha_x = lf.alpha.hor
+    beta_y = lf.beta.ver
+    alpha_y = lf.alpha.ver
+    psi_x = lf.psi.hor
+    psi_y = lf.psi.ver
+    disp_x = lf.dispersion.hor
+    dprime_x = lf.dPrime.hor
+
     if myrank == 0:
+        print('lattice functions after adjustment')
+        print('beta_x: ', beta_x)
+        print('alpha_x', alpha_x)
+        print('beta_y: ', beta_y)
+        print('alpha_y: ', alpha_y)
+        print('dispersion_x: ', disp_x)
+        print('dispersion prime_x: ', dprime_x)
+        print()
+
+    # save the doctored lattice
+    if myrank == 0 and opts.save_cooked_lattice:
         with open('cooked_booster_lattice.txt', 'w') as f:
             print(lattice, file=f)
         save_json_lattice(lattice, 'cooked_booster_lattice.json')
 
-    if myrank == 0:
         lattice.export_madx_file('cooked_booster.madx', True)
 
     if myrank == 0:
@@ -334,8 +334,8 @@ def main():
             local_part[i, 2] = i*dy
             local_part[i, 0:2] = 0.0
             local_part[i, 3:6] = 0.0
-        local_part[0, 0] = 1.0e-9 # small offset close to origin for
-        local_part[51, 2] = 1.0e-9 # both x and y to get a good frequency
+        local_part[0, 0] = 1.0e-10 # small offset close to origin for
+        local_part[51, 2] = 1.0e-10 # both x and y to get a good frequency
 
     if myrank == 0:
         if opts.test_particles:
@@ -408,8 +408,9 @@ def main():
     sim.lattice.clear()
     sim.lattice.extend(ix_lattice)
 
-    print('impactx lattice:')
-    print(sim.lattice)
+    if myrank == 0 and opts.save_cooked_impactx:
+        with open('cooked_booster_impactx.py', 'w') as f:
+            print(unroll_impactx_lattice(sim.lattice), file=f)
 
     # run simulation
     if opts.turns > 0:

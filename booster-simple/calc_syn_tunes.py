@@ -15,9 +15,23 @@ def main(h5file):
 
     xdata = h5.get('track_coords')[:, 0:51, 0].transpose()
     ydata = h5.get('track_coords')[:, 51:102, 2].transpose()
-    
+
+    npart = xdata.shape[0]
+    nturns = xdata.shape[1]
+
     print('xdata: ', xdata.shape)
     print('ydata: ', ydata.shape)
+
+    # set mean to 0 to eliminate the 0 frequency component
+
+    xmean = xdata.mean(axis=1).reshape((npart, 1))
+    ymean = ydata.mean(axis=1).reshape((npart, 1))
+    print('xmean.shape: ', xmean.shape)
+    print('ymean.shape: ', ymean.shape)
+    xdata = xdata - xmean
+    ydata = ydata - ymean
+    print('new xdata means: ', xdata.mean(axis=1))
+    print('new ydata means: ', ydata.mean(axis=1))
 
     NX = xdata.shape[0]
     NY = ydata.shape[0]
@@ -31,6 +45,12 @@ def main(h5file):
         pass
     for i in range(NY):
         print(f'calculating y tune {i}')
+        print('mean value: ', ydata[i,:].mean())
+        foo = ydata[0, :]
+        print('foo.shape: ', foo.shape, ' mean foo: ', foo.mean())
+        print('foo: ', foo)
+        print('naff(foo): ', pnf.naff(foo, turns=niters, nterms=1))
+        print(pnf.naff(ydata[i, :], turns=niters, nterms=1))
         ytunes[i] = pnf.naff(ydata[i, :], turns=niters, nterms=1)[0][1]
         pass
 

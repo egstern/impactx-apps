@@ -195,10 +195,12 @@ def add_test_particles(sim, stdx, stdy):
     for i in range(51):
         local_particles[i, 0] = i*dx
         local_particles[i, 1:6] = 0.0
+    local_particles[0, 0] = 1.0e-10
     for i in range(51, 102):
         local_particles[i, 2] = (i-51)*dy
         local_particles[i, 0:2] = 0.0
         local_particles[i, 3:6] = 0.0
+    local_particles[51, 2] = 1.0e-10
     bunch.checkin_particles()
     return
 
@@ -275,29 +277,6 @@ def main():
     (orig_xtune, orig_ytune, orig_cdt) = SIM.Lattice_simulator.calculate_tune_and_cdt(lattice)
     print("Original base tunes, x: ", orig_xtune, " y: ", orig_ytune, file=logger)
 
-
-    # Get lattice functions and dispersions so beam sizes
-    # can be calculated for matching
-
-    synergia.simulation.Lattice_simulator.tune_circular_lattice(lattice)
-    synergia.simulation.Lattice_simulator.CourantSnyderLatticeFunctions(lattice)
-    synergia.simulation.Lattice_simulator.calc_dispersions(lattice)
-    lf = lattice.get_elements()[-1].lf
-    beta_x = lf.beta.hor
-    alpha_x = lf.alpha.hor
-    beta_y = lf.beta.ver
-    alpha_y = lf.alpha.ver
-    psi_x = lf.psi.hor
-    psi_y = lf.psi.ver
-    disp_x = lf.dispersion.hor
-    dprime_x = lf.dPrime.hor
-
-    print('CS lattice functions:', file=logger)
-    print('beta_x: ', beta_x, file=logger)
-    print('alpha_x: ', alpha_x, file=logger)
-    print('disp_x: ', disp_x, file=logger)
-    print('beta_y: ', beta_y, file=logger)
-    print('alpha_y: ', alpha_y, file=logger)
     
     do_adjust_tunes = False
     if opts.xtune or opts.ytune:
@@ -360,6 +339,31 @@ def main():
     print('final horizontal chromaticity: ', hchrom, file=logger)
     print('final vertical chromaticity: ', vchrom, file=logger)
     print("alpha_c: ", alpha_c, ", slip_factor: ", slip_factor, file=logger)
+
+
+    # Get lattice functions and dispersions after lattice
+    # adjustments so beam sizes
+    # can be calculated for matching
+
+    synergia.simulation.Lattice_simulator.tune_circular_lattice(lattice)
+    synergia.simulation.Lattice_simulator.CourantSnyderLatticeFunctions(lattice)
+    synergia.simulation.Lattice_simulator.calc_dispersions(lattice)
+    lf = lattice.get_elements()[-1].lf
+    beta_x = lf.beta.hor
+    alpha_x = lf.alpha.hor
+    beta_y = lf.beta.ver
+    alpha_y = lf.alpha.ver
+    psi_x = lf.psi.hor
+    psi_y = lf.psi.ver
+    disp_x = lf.dispersion.hor
+    dprime_x = lf.dPrime.hor
+
+    print('CS lattice functions after adjustments:', file=logger)
+    print('beta_x: ', beta_x, file=logger)
+    print('alpha_x: ', alpha_x, file=logger)
+    print('disp_x: ', disp_x, file=logger)
+    print('beta_y: ', beta_y, file=logger)
+    print('alpha_y: ', alpha_y, file=logger)
 
     dist = synergia.foundation.Random_distribution(opts.seed, comm.get_rank())
 

@@ -26,4 +26,7 @@ opts.add("test_particles", False, "whether to include test particles")
 opts.add("initial_monitor", False, "put monitor element at beginning of lattice")
 opts.add("final_monitor", True, "put monitor element at end of lattice")
 
+opts.add("save_cooked_lattice", True, "save the cooked lattice as a json and MADX file")
+opts.add("save_cooked_impactx", True, "save the python definition of the ImpactX lattice")
+
 job_mgr = synergia_workflow.Job_manager("run_booster_simple.py", opts, ["sbbooster.madx", "syn2_to_impactx.py"])

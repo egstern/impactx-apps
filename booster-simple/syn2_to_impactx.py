@@ -21,7 +21,8 @@ nslice_by_elem_type = {
     'multipole': 1,
     'rfcavity': 1}
 
-def cnv_drift(elem):
+# linear flag if true uses linearized models
+def cnv_drift(elem, linear=False):
     ds = elem.get_length()
     nm = elem.get_name()
     ns = nslice_by_elem_type['drift']
@@ -32,11 +33,14 @@ def cnv_dipedge(elem):
     e1 = elem.get_double_attribute('e1', 0.0)
     fint = elem.get_double_attribute('fint', 0.0)
     hgap = elem.get_double_attribute('hgap', 0.0)
-    ix_elem = impactx.elements.DipEdge(psi=e1, rc=rc, g=hgap,
+    # sneaky, MAD-X dipedge uses HGAP or half-gap while ImpactX uses
+    # g for full gap
+    ix_elem = impactx.elements.DipEdge(psi=e1, rc=rc, g=hgap*2,
                                        K2=fint, name=elem.get_name())
     return ix_elem
 
-def cnv_sbend(elem):
+# linear flag if true uses linearized ImpactX models
+def cnv_sbend(elem, linear=False):
     bendangle = elem.get_bend_angle()
     length = elem.get_length()
     radius_of_curvature = length/bendangle
@@ -54,12 +58,12 @@ def cnv_sbend(elem):
 
     if e1 != 0.0:
         us_dipedge = impactx.elements.DipEdge(e1, radius_of_curvature, \
-                                              hgap, fint, \
+                                              2*hgap, fint, \
                                               name = nm+"_usedge")
         pass
     if e2 != 0.0:
         ds_dipedge = impactx.elements.DipEdge(-e2, radius_of_curvature, \
-                                              hgap, fint, \
+                                              2*hgap, fint, \
                                               name = nm+"_dsedge")
         pass
 
@@ -188,7 +192,9 @@ def cnv_rbend(elem):
         pass
 
     return(ixelem)
-def cnv_quadrupole(elem):
+
+# linear flag if true uses linearized models
+def cnv_quadrupole(elem, linear=False):
     ds = elem.get_length()
     k1 = elem.get_double_attribute('k1')
     nm = elem.get_name()
@@ -390,3 +396,54 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
 
     return impactx_lattice
     
+# given an ImpactX lattice as a sequence of elements, unroll the lattice
+# and return a python program that reccreates the lattice
+
+def unroll_impactx_lattice(lattice):
+    # define the output lattice as a list
+
+    output_lattice = "[\n"
+    for elem in lattice:
+        output_elem = ""
+        edict = elem.to_dict()
+        etype = edict['type']
+        output_elem = f'impactx.elements.{etype}('
+        firstparm = True
+
+        # for ExactSbend the member phi which is the angle has been converted into radians but
+        # I need to convert it back to degrees which is what the contructor needs.
+        if etype == 'ExactSbend':
+            edict['phi'] = edict['phi'] * 180/np.pi
+
+        if etype == 'DipEdge' or etype == 'ShortRF' or etype == 'BeamMonitor':
+            # remove extra attributes
+            del edict['nslice']
+            del edict['ds']
+
+        # skipping BeamMonitors for now. They seem to cause trouble
+        if etype == "BeamMonitor":
+            continue
+
+        for pname in edict:
+            # the name parameter is a string and must be enclosed in quotes
+            # the type element is not a parameter
+            if pname == "type":
+                continue
+            if not firstparm:
+                output_elem = output_elem + ", "
+            if pname == "name":
+                output_elem = output_elem + f'{pname}="{edict.get(pname)}"'
+            else:
+                output_elem = output_elem + f'{pname}={edict.get(pname)}'
+            firstparm = False
+        # close out this element
+        output_elem = output_elem + ")"
+
+        output_lattice = output_lattice + output_elem + ",\n"
+
+    # close out the lattice
+    output_lattice = output_lattice + "]"
+
+    return output_lattice
+
+        

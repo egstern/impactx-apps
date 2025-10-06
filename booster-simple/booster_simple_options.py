@@ -7,6 +7,9 @@ opts = synergia_workflow.Options("booster-simple")
 
 opts.add("seed", 12345791, "Pseudorandom number generator seed", int)
 
+opts.add("lattice_file" , "sbbooster.madx", "lattice file to read")
+opts.add("lattice_line", "booster", "which line in the lattice file to use")
+opts.add("json_lattice_file", "cooked_booster.json", "json lattice file for running booster")
 opts.add("momentum", 2.0, "proton beam momentum")
 opts.add("enable_rf", True, "turn on the RF cavities")
 opts.add("harmon", 32, "harmonic number for RF")
