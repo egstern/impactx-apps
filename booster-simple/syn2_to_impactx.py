@@ -62,14 +62,14 @@ def cnv_sbend(elem, linear=False):
                                               name = nm+"_usedge")
         pass
     if e2 != 0.0:
-        ds_dipedge = impactx.elements.DipEdge(-e2, radius_of_curvature, \
+        ds_dipedge = impactx.elements.DipEdge(e2, radius_of_curvature, \
                                               2*hgap, fint, \
                                               name = nm+"_dsedge")
         pass
 
-    if elem.get_double_attribute('h1') != 0.0:
+    if elem.get_double_attribute('h1', 0.0) != 0.0:
         print('h1 attribute not supported for sbend in ImpactX')
-    if elem.get_double_attribute('h2') != 0.0:
+    if elem.get_double_attribute('h2', 0.0) != 0.0:
         print('h2 attribute not supported for sbend in ImpactX')
 
     if not cf:
@@ -146,14 +146,14 @@ def cnv_rbend(elem):
                                               name = nm+"_usedge")
         pass
     if e2 != 0.0:
-        ds_dipedge = impactx.elements.DipEdge(-e2, radius_of_curvature,
+        ds_dipedge = impactx.elements.DipEdge(e2, radius_of_curvature,
                                               hgap, fint,
                                               name = nm+"_dsedge")
         pass
 
-    if elem.get_double_attribute('h1') != 0.0:
+    if elem.get_double_attribute('h1', 0.0) != 0.0:
         print('h1 attribute not supported for sbend in ImpactX')
-    if elem.get_double_attribute('h2') != 0.0:
+    if elem.get_double_attribute('h2', 0.0) != 0.0:
         print('h2 attribute not supported for sbend in ImpactX')
 
     if not cf:
@@ -196,7 +196,7 @@ def cnv_rbend(elem):
 # linear flag if true uses linearized models
 def cnv_quadrupole(elem, linear=False):
     ds = elem.get_length()
-    k1 = elem.get_double_attribute('k1')
+    k1 = elem.get_double_attribute('k1', 0.0)
     nm = elem.get_name()
     return impactx.elements.ChrQuad(ds, k1, unit=0,
                                     nslice=nslice_by_elem_type['quadrupole'],
@@ -227,8 +227,8 @@ def cnv_multipole(elem):
 
 def cnv_rfcavity(elem, refpart):
     mp = refpart.get_mass()
-    rfvolt = elem.get_double_attribute('volt')/1000.0 # get the voltage in GV
-    freq = elem.get_double_attribute('freq')*1.0e6 # get the freq in Hz
+    rfvolt = elem.get_double_attribute('volt', 0.0)/1000.0 # get the voltage in GV
+    freq = elem.get_double_attribute('freq', 0.0)*1.0e6 # get the freq in Hz
     phase = elem.get_double_attribute('lag', 0.0)*360.0-90.0
     # if cavity length > 0, create two drifts to sandwich it
     L = elem.get_length()
@@ -284,7 +284,7 @@ def cnv_rfcavity(elem, refpart):
 
 def cnv_sextupole(elem):
     L = elem.get_length()
-    k2 = elem.get_double_attribute('k2')
+    k2 = elem.get_double_attribute('k2', 0.0)
     # The Booster lattice includes elements with the tilt attribute
     tilt = elem.get_double_attribute('tilt', 0.0)
     k2n = k2 * np.cos(3*tilt)
@@ -303,7 +303,7 @@ def cnv_sextupole(elem):
 # octupole follows similar logic as sextupole
 def cnv_octupole(elem):
     L = elem.get_length()
-    k3 = elem.get_double_attribute('k3')
+    k3 = elem.get_double_attribute('k3', 0.0)
     # The Booster lattice includes elements with the tilt attribute
     tilt = elem.get_double_attribute('tilt', 0.0)
     k3n = k2 * np.cos(4*tilt)
@@ -328,10 +328,12 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
 
 
     impactx_lattice = []
-
-    # define the monitor element that may be used
-    monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
+    
+    # We may define the monitor element if needed
+    monitor = None
     if init_monitor:
+        if not monitor:
+            monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
         impactx_lattice.append(monitor)
 
     # peel elements from the synergia lattice, converting to ImpactX elements
@@ -392,6 +394,9 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
         pass
 
     if final_monitor:
+        # define monitor if it hasn't already been defined
+        if not monitor:
+            monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
         impactx_lattice.append(monitor)
 
     return impactx_lattice
