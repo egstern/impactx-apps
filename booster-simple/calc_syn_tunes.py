@@ -54,6 +54,11 @@ def main(h5file):
         ytunes[i] = pnf.naff(ydata[i, :], turns=niters, nterms=1)[0][1]
         pass
 
+    print('x tunes: ', xtunes)
+    print()
+    print('y tunes: ', ytunes)
+    print()
+
     plt.figure()
     plt.plot(xtunes, '*', label='x tunes')
     plt.legend(loc='best')

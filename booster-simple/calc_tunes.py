@@ -29,6 +29,11 @@ def main():
         ytunes[i] = pnf.naff(ydata[i, :], turns=niters, nterms=1)[0][1]
         pass
 
+    print('xtunes: ', xtunes)
+    print()
+    print('ytunes: ', ytunes)
+    print()
+
     plt.figure()
     plt.plot(xtunes, '*', label='x tunes')
     plt.legend(loc='best')
