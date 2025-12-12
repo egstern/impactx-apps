@@ -10,37 +10,56 @@ import numpy as np
 import synergia
 import impactx
 
+from enum import Enum
+
+class Order(Enum):
+    linear = 0
+    chr = 1
+    exact = 2
+
+
 ET = synergia.lattice.element_type
 
 nslice_by_elem_type = {
-    'drift': 16,
-    'sbend': 16,
-    'quadrupole': 1,
+    'drift': 1,
+    'sbend': 4,
+    'quadrupole': 8,
     'sextupole': 1,
     'octupole': 1,
     'multipole': 1,
     'rfcavity': 1}
 
 # linear flag if true uses linearized models
-def cnv_drift(elem, linear=False):
+def cnv_drift(elem, order):
     ds = elem.get_length()
     nm = elem.get_name()
     ns = nslice_by_elem_type['drift']
-    return impactx.elements.ExactDrift(ds, nslice=ns, name=nm)
+    if order == Order.exact:
+        return impactx.elements.ExactDrift(ds, nslice=ns, name=nm)
+    elif order == Order.linear:
+        return impactx.elements.Drift(ds, nslice=ns, name=ns)
+    elif order == Order.chr:
+        return impactx.elements.ChrDrift(ds, nslice, name=ns)
+    else:
+        raise RuntimeError(f'unknown order: {order}')
 
-def cnv_dipedge(elem):
+def cnv_dipedge(elem, order):
     rc = 1/elem.get_double_attribute('h', 0.0)
     e1 = elem.get_double_attribute('e1', 0.0)
     fint = elem.get_double_attribute('fint', 0.0)
     hgap = elem.get_double_attribute('hgap', 0.0)
     # sneaky, MAD-X dipedge uses HGAP or half-gap while ImpactX uses
     # g for full gap
+    if order == Order.linear:
+        model = 'linear'
+    elif order == Order.exact or order == Order.chr:
+        model = 'nonlinear'
     ix_elem = impactx.elements.DipEdge(psi=e1, rc=rc, g=hgap*2,
-                                       K2=fint, name=elem.get_name())
+                                       K2=fint, model=model, name=elem.get_name())
     return ix_elem
 
 # linear flag if true uses linearized ImpactX models
-def cnv_sbend(elem, linear=False):
+def cnv_sbend(elem, order):
     bendangle = elem.get_bend_angle()
     length = elem.get_length()
     radius_of_curvature = length/bendangle
@@ -318,7 +337,7 @@ def cnv_octupole(elem):
                                              )
     return ocelem
 
-def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
+def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True, order=Order.exact):
     # lattice must have a reference particle
     try:
         refpart = lattice.get_reference_particle()
@@ -341,7 +360,7 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True):
         etype = elem.get_type()
 
         if etype == ET.drift:
-            impactx_lattice.append(cnv_drift(elem))
+            impactx_lattice.append(cnv_drift(elem, order))
         elif etype == ET.sbend:
             bndelem = cnv_sbend(elem)
             if isinstance(bndelem, list):
