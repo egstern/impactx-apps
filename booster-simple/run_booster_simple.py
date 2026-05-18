@@ -196,8 +196,8 @@ def main():
 
     target_xtune = orig_xtune
     target_ytune = orig_ytune
-    target_hchrom = orig_hchrom
-    target_vchrom = orig_vchrom
+    target_xchrom = orig_hchrom
+    target_ychrom = orig_vchrom
     if opts.set_xtune:
         target_xtune = opts.set_xtune
     if opts.set_ytune:
@@ -377,6 +377,14 @@ def main():
         dpy_podv.push_back(p_dpy)
     for p_dpt in local_part[:,5]:
         dpt_podv.push_back(p_dpt)
+
+    if myrank == 0:
+        print('std x: ', local_part[:, 0].std())
+        print('std px: ', local_part[:, 1].std())
+        print('std y: ', local_part[:, 2].std())
+        print('std py: ', local_part[:, 3].std())
+        print('std T: ', local_part[:, 4].std())
+        print('std PT: ', local_part[:, 5].std())
 
     # don't need the synergia bunch anymore. Delete it
     # so there aren't any Kokkos remnants hanging around

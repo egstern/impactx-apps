@@ -8,11 +8,11 @@ opts = synergia_workflow.Options("run_booster_simple")
 opts.add('enable_rf', True, 'turn on the RF cavities')
 opts.add("emitx", 8.0e-6, "8 pi mm mr 90% not normalized")
 opts.add("emity", 8.0e-6, "8 pi mm mr 90% not normalized")
-opts.add("stddpop", 1.0e-4, "dp/p standard deviation for uniform beams")
+opts.add("stddpop", 1.0e-3, "dp/p standard deviation for uniform beams")
 opts.add("harmonic_number", 84, "harmonic number of booster")
 
-opts.add('macroparticles', 32768, "number of macroparticles")
-opts.add("turns", 1, "number of turns to run")
+opts.add('macroparticles', 65536, "number of macroparticles")
+opts.add("turns", 10, "number of turns to run")
 
 opts.add("rf_volt", 200.0e-6, "RF voltage [GV]")
 
