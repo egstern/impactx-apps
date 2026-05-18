@@ -13,16 +13,17 @@ opts.add("json_lattice_file", "cooked_booster.json", "json lattice file for runn
 opts.add("momentum", 2.0, "proton beam momentum")
 opts.add("enable_rf", True, "turn on the RF cavities")
 opts.add("harmon", 32, "harmonic number for RF")
-opts.add("rf_volt", 0.2, "total RF voltage [GV]")
+opts.add("rf_volt", 0.0002, "total RF voltage [GV]")
 
-opts.add("matching", "6dmoments", "matching procedure 6dmoments|uniform")
+opts.add("matching", "6dmoments", "matching procedure 6dmoments|uniform|file")
+opts.add("particles_file", "/home/egstern/impactx-apps/booster-simple/pip2/postinjection.02/pip-ii-injected-tenpercent.h5", "file of particles")
 
 opts.add("emitx", 8.0e-6, "8 pi mm mr 90% not normalized")
 opts.add("emity", 8.0e-6, "8 pi mm mr 90% not normalized")
-opts.add("stddpop", 1.0e-4, "dp/p standard deviation for uniform beams")
+opts.add("stddpop", 1.0e-3, "dp/p standard deviation for uniform beams")
 
 opts.add("num_bunches", 1, "number of bunches in bunch train")
-opts.add("macroparticles", 10000, "number of macro particles")
+opts.add("macroparticles", 65536, "number of macro particles")
 opts.add("real_particles", 5.0e10, "number of real particles (bunch charge)")
 opts.add("periodic", True, "make bunch periodic boundary conditions")
 opts.add("turns", 1, "number of turns")
@@ -38,17 +39,17 @@ opts.add("xtune", None, "adjust x tune", float)
 opts.add("ytune", None, "adjust y tune", float)
 
 # chromaticity adjustments
-opts.add("set_hchrom", None, "adjust x chromaticity", float)
-opts.add("set_vchrom", None, "adjust y chromaticity", float)
+opts.add("set_xchrom", None, "adjust x chromaticity", float)
+opts.add("set_ychrom", None, "adjust y chromaticity", float)
 
 opts.add("stepper", "elements", "which stepper to use independent|elements|splitoperator")
 opts.add("steps", 1, "# steps")
 
-opts.add("step_diag", True, "diagnostics each step")
-opts.add("tracks", 100, "number of particles to track")
-opts.add("particles", True, "if True, save particles")
+opts.add("step_diag", False, "diagnostics each step")
+opts.add("tracks", 0, "number of particles to track")
+opts.add("particles", False, "if True, save particles")
 opts.add("particles_period", 0, "0: save every turn, n!=0, save particles every n turns")
 
 opts.add("test_particles", False, "add test particles to the bunch")
 
-job_mgr = synergia_workflow.Job_manager("booster-simple.py", opts, ["booster_simple_options.py", "sbbooster.madx"])
+job_mgr = synergia_workflow.Job_manager("booster-simple.py", opts, ["booster_simple_options.py", "sbbooster-cooked.madx"])

@@ -5,12 +5,17 @@ import numpy as np
 import synergia
 import synergia.simulation as SIM
 from booster_simple_options import opts
+import h5py
 ET = synergia.lattice.element_type
 MT = synergia.lattice.marker_type
 #####################################
 
+from mpi4py import MPI
+
+myrank = MPI.COMM_WORLD.rank
+
 DEBUG = True
-lattice_file = "sbbooster.madx"
+lattice_file = "sbbooster-cooked.madx"
 lattice_line = "booster"
 harmonic_number = 84
 
@@ -43,7 +48,7 @@ def print_statistics(bunch, fout=sys.stdout):
 
     parts = bunch.get_particles_numpy()
     print(parts.shape,  ", ", parts.size , file=fout)
-    print("shape: {0}, {1}".format(parts.shape[0], parts.shape[1]))
+    print("shape: {0}, {1}".format(parts.shape[0], parts.shape[1]), file=fout)
 
     mean = synergia.bunch.Core_diagnostics.calculate_mean(bunch)
     std = synergia.bunch.Core_diagnostics.calculate_std(bunch, mean)
@@ -53,63 +58,11 @@ def print_statistics(bunch, fout=sys.stdout):
 #######################################################
 
 
+################################################################################
 
-# mark focussing and defocussing quadrupoles in lattice for adjust tune
-def mark_fd_quads(lattice):
-    nh = 0
-    nv = 0
-    for elem in lattice.get_elements():
-        if elem.get_type() == ET.quadrupole:
-            if elem.get_double_attribute("k1") > 0.0:
-                elem.set_marker(MT.h_tunes_corrector)
-                elem.reset_marker(MT.v_tunes_corrector)
-                nh = nh+1
-            elif elem.get_double_attribute("k1") < 0.0:
-                elem.reset_marker(MT.h_tunes_corrector)
-                elem.set_marker(MT.v_tunes_corrector)
-                nv = nv+1
-    return (nh, nv)
 
 ################################################################################
 
-# mark focussing and defocussing quadrupoles in lattice for adjust tune
-def mark_fd_sext(lattice):
-    nh = 0
-    nv = 0
-    for elem in lattice.get_elements():
-        if elem.get_type() == ET.sextupole:
-            if elem.get_name() == "sf":
-                elem.set_marker(MT.h_chrom_corrector)
-                elem.reset_marker(MT.v_chrom_corrector)
-                nh = nh+1
-            elif elem.get_name() == "sd":
-                elem.reset_marker(MT.h_chrom_corrector)
-                elem.set_marker(MT.v_chrom_corrector)
-                nv = nv+1
-    return (nh, nv)
-
-################################################################################
-
-# mark focussing and defocussing quadrupoles in lattice for adjust tune
-def print_fd_sext(lattice, f):
-    nh = 0
-    nv = 0
-    print('k2 values for horizontal chromaticity correctors')
-    for elem in lattice.get_elements():
-        if elem.has_marker(MT.h_chrom_corrector):
-            if nh != 0:
-                print(', ', end='', file=f)
-            print(elem.get_double_attribute('k2'), end='', file=f)
-            nh = nh + 1
-    print(file=f)
-    print('k2 values for vertical chromaticity correctors', file=f)
-    for elem in lattice.get_elements():
-        if elem.has_marker(MT.v_chrom_corrector):
-            if nv != 0:
-                print(', ', end='', file=f)
-            print(elem.get_double_attribute('k2'), end='', file=f)
-            nv = nv + 1
-    print(file=f)
 
 ################################################################################
 def print_bunch_stats(bunch, fo):
@@ -128,10 +81,34 @@ def print_bunch_stats(bunch, fo):
 
 ################################################################################
 
+def set_adjust_markers(lattice):
+    for elem in lattice.get_elements():
+        # focussing quads are in the cps with name qsxx
+        # defocussing quads in  the cpl with name qlxx
+        # focussing sextupoles are in the cps with name sxsxx
+        # defocussing quads in  the cpl with name sxlxx
+        if elem.get_name() == "qsxx":
+            elem.set_marker(synergia.lattice.marker_type.h_tunes_corrector)
+            #print('short quad corrector')
+        elif elem.get_name() == "qlxx":
+            elem.set_marker(synergia.lattice.marker_type.v_tunes_corrector)
+            #print('long quad corrector')
+        elif elem.get_name() == "sxsxx":
+            elem.set_marker(synergia.lattice.marker_type.h_chrom_corrector)
+            #print('short chrom corrector')
+        elif elem.get_name() == "sxlxx":
+            elem.set_marker(synergia.lattice.marker_type.v_chrom_corrector)
+            #print('long chrom corrector')
+
+#######################################################
+
 def get_lattice():
     # read the lattice in from a MadX sequence file
     lattice = synergia.lattice.MadX_reader().get_lattice(lattice_line, lattice_file)
     lattice.set_all_string_attribute("extractor_type", "libff")
+    
+    set_adjust_markers(lattice)
+
     return lattice
 
 ################################################################################
@@ -235,13 +212,20 @@ def main():
     print(lattice, file=f)
     f.close()
 
-    lattice.export_madx_file('syn_booster_lattice.madx', sanitize=True)
+    lattice.export_madx_file('booster_lattice.madx', sanitize=True)
 
     num_bunches = opts.num_bunches
     bucket_length = lattice.get_length()/harmonic_number
     
     macroparticles = opts.macroparticles
     real_particles = opts.real_particles
+    # if reading from a particles file, get the number of macroparticles
+    if opts.matching == "file":
+        h5 = h5py.File(opts.particles_file, 'r')
+        num_particles = h5.get('particles').shape[0]
+        macroparticles = num_particles
+        h5.close()
+
     print("macroparticles: ", macroparticles, file=logger)
     print("real_particles: ", real_particles, file=logger)
 
@@ -277,7 +261,6 @@ def main():
     (orig_xtune, orig_ytune, orig_cdt) = SIM.Lattice_simulator.calculate_tune_and_cdt(lattice)
     print("Original base tunes, x: ", orig_xtune, " y: ", orig_ytune, file=logger)
 
-    
     do_adjust_tunes = False
     if opts.xtune or opts.ytune:
         do_adjust_tunes = True
@@ -302,44 +285,42 @@ def main():
         
 
     chrom = SIM.Lattice_simulator.get_chromaticities(lattice)
-    hchrom = chrom.horizontal_chromaticity
-    vchrom = chrom.vertical_chromaticity
-    print('initial horizontal chromaticity: ', hchrom, file=logger)
-    print('initial vertical chromaticity: ', vchrom, file=logger)
+    target_xchrom = chrom.horizontal_chromaticity
+    target_ychrom = chrom.vertical_chromaticity
+    print('initial horizontal chromaticity: ', target_xchrom, file=logger)
+    print('initial vertical chromaticity: ', target_ychrom, file=logger)
 
     adjust_chromaticity = False
-    if opts.set_hchrom or opts.set_vchrom:
-        nh, nv = mark_fd_sext(lattice)
-        print('number sextupole correctors: ', nh, nv, file=logger)
-        if not nh and not nv:
-            raise RuntimeError('No sextupole correctors available')
-        print('initial correctors', file=logger)
-        print_fd_sext(lattice, logger)
+    if opts.set_xchrom:
         adjust_chromaticity = True
-        if opts.set_hchrom:
-            target_hchrom = opts.set_hchrom
-        else:
-            target_hchrom = hchrom
-        if opts.set_vchrom:
-            target_vchrom = opts.set_vchrom
-        else:
-            target_vchrom = vchrom
+        target_xchrom = opts.set_xchrom
+    if opts.set_ychrom:
+        adjust_chromaticity = True
+        target_ychrom = opts.set_ychrom
 
-        print('adjusting chromaticities to: h: ', target_hchrom, ', v: ', target_vchrom, file=logger)
-        SIM.Lattice_simulator.adjust_chromaticities(lattice, target_hchrom, target_vchrom)
-        # read back new chromaticity
-        chrom = SIM.Lattice_simulator.get_chromaticities(lattice)
-        hchrom = chrom.horizontal_chromaticity
-        vchrom = chrom.vertical_chromaticity
-        print('final correctors', file=logger)
-        print_fd_sext(lattice, logger)
+    if adjust_chromaticity:
+        print('adjusting chromaticities to: x: ', target_xchrom, ', y: ', target_ychrom, file=logger)
+        SIM.Lattice_simulator.adjust_chromaticities(lattice, target_xchrom, target_ychrom, max_steps=20, tolerance=1.0e-2)
+
+    # read back final chromaticity
+    chrom = SIM.Lattice_simulator.get_chromaticities(lattice)
+    xchrom = chrom.horizontal_chromaticity
+    ychrom = chrom.vertical_chromaticity
 
     alpha_c = chrom.momentum_compaction
     slip_factor = chrom.slip_factor
-    print('final horizontal chromaticity: ', hchrom, file=logger)
-    print('final vertical chromaticity: ', vchrom, file=logger)
+    print('final horizontal chromaticity: ', xchrom, file=logger)
+    print('final vertical chromaticity: ', ychrom, file=logger)
     print("alpha_c: ", alpha_c, ", slip_factor: ", slip_factor, file=logger)
 
+
+    # save adjusted lattice
+    if myrank == 0:
+        with open('booster_lattice_cooked.out', 'w') as f:
+            print(lattice, file=f)
+        with open('booster_lattice_cooked.json', 'w') as f:
+            print(lattice.as_json(), file=f)
+        lattice.export_madx_file('booster_lattice_cooked.madx', sanitize=True)
 
     # Get lattice functions and dispersions after lattice
     # adjustments so beam sizes
@@ -381,11 +362,30 @@ def main():
     if opts.matching == "6dmoments":
         print("Matching with 6d moments", file=logger)
 
+        #covars = synergia.bunch.get_correlation_matrix(map, stdx, stdy, stddpop, beta, (0,2,5))
+        covars = eval("""np.array([[ 1.24470147e-05, -1.63640289e-07,  7.62213409e-08,
+         8.61834352e-10, -3.08901957e-06,  1.42795921e-06],
+       [-1.63640289e-07,  2.50860822e-07, -1.33440547e-08,
+        -6.92358600e-10,  1.03230080e-06, -1.00689850e-09],
+       [ 7.62213409e-08, -1.33440547e-08,  3.89803771e-05,
+        -6.50970896e-08, -1.12939516e-05,  3.85490173e-08],
+       [ 8.61834352e-10, -6.92358600e-10, -6.50970896e-08,
+         1.07646733e-07,  7.24881465e-06, -3.56815708e-09],
+       [-3.08901957e-06,  1.03230080e-06, -1.12939516e-05,
+         7.24881465e-06,  1.01858075e+00,  4.34320590e-06],
+       [ 1.42795921e-06, -1.00689850e-09,  3.85490173e-08,
+        -3.56815708e-09,  4.34320590e-06,  7.79667514e-07]])""")
         covars = synergia.bunch.get_correlation_matrix(map, stdx, stdy, stddpop, beta, (0,2,5))
+
         means = np.zeros(6, dtype='d')
         print(file=logger)
         print('covariance matrix:', file=logger)
         print(np.array2string(covars), file=logger, flush=True)
+        print('stds from covariance matrix:', file=logger, flush=True)
+        for i in range(6):
+            print(i, np.sqrt(covars[i, i]), file=logger, flush=True)
+            pass
+
         for b in range(num_bunches):
             bunch = sim.get_bunch(0, b)
             synergia.bunch.populate_6d(dist, bunch, means, covars)
@@ -402,6 +402,31 @@ def main():
             synergia.bunch.populate_transverse_gaussian(dist, bunch, means, covars, bucket_length/beta)
             print_statistics(bunch, logger)
         
+    elif opts.matching == "file":
+        # open the particles file to get the number of particles
+        h5 = h5py.File(opts.particles_file, 'r')
+        num_particles = h5.get('particles').shape[0]
+        # Have to read the momentum from the particles file which might be
+        # different than the energy/momentum read from the lattice if we're
+        # restarting an acceleration simulation. Set the reference particle
+        # to be consistent.
+        file_pz = h5.get('pz')[()]
+        file_mass = h5.get('mass')[()]
+        file_energy = np.sqrt(file_pz**2 + file_mass**2)
+        h5.close()
+            
+        bunch = sim.get_bunch(0, 0)
+        bunch.checkout_particles()
+        bunch.get_design_reference_particle().set_total_energy(file_energy)
+        bunch.get_reference_particle().set_total_energy(file_energy)
+        refpart.set_total_energy(file_energy)
+        # not sure I should change the lattice energy
+        # lattice.set_lattice_energy(file_energy)
+
+        bunch.read_file_legacy(opts.particles_file)
+        print('Populating bunch with {} macroparticles, real charge {} from file {}'.format(num_particles, real_particles, opts.particles_file), file=logger)
+        print('Beam energy from file: ', file_energy, file=logger)
+
     else:
         # no other matching options for now
         pass
