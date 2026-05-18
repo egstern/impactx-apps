@@ -103,7 +103,7 @@ for i in range(istart, istart+n_local):
 # dp/p needs to be converted to -dE/p
 for i in range(istart, istart+n_local):
     p = (h5.get('particles')[i, 5] + 1) * pz
-    dT = -(np.sqrt(p**2 + mass**2) - etot)
+    dT = -(np.sqrt(p**2 + mass**2) - etot)/pz
     dpt_podv.push_back(dT)
 
 # I don't need the input file any more
