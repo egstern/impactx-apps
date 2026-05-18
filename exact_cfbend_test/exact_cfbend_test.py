@@ -57,6 +57,11 @@ dpt = np.zeros(N_part, dtype='d')
 # particle 1 has offset pt
 dpt[1] = -1.0e-3
 
+dx[2] = 1.0e-3
+dpx[3] = -1.0e-4
+dy[4] = -1.0e-3
+dpy[5] = -1.0e-4
+
 if not Config.have_gpu:  # initialize using cpu-based PODVectors
     dx_podv = amr.PODVector_real_std()
     dy_podv = amr.PODVector_real_std()
@@ -91,18 +96,24 @@ pc.add_n_particles(
 
 cfb_ds = mag_length
 mag_R = mag_length/mag_angle
-cfb_knormal = np.array([1/mag_R, 0.0])
-cfb_kskew = np.array([0.0, 0.0])
+cfb_knormal = np.array([1/mag_R, 0.0, 0.0, 0.0, 0.0])
+cfb_kskew = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
 monitor = elements.BeamMonitor("monitor", backend="h5")
 sim.lattice.extend(
     [
         monitor,
         # The bend
+        #elements.ExactCFbend(ds=mag_length, k_normal=cfb_knormal, k_skew=cfb_kskew, nslice=1, int_order=6, mapsteps=6, name='foo'),
         elements.ExactCFbend(ds=mag_length, k_normal=cfb_knormal, k_skew=cfb_kskew, nslice=1, name='foo'),
         monitor,
     ]
 )
+
+print("lattice: ")
+for e in sim.lattice:
+    print(e, "\n\t", e.to_dict())
+print()
 
 sim.track_particles()
 
