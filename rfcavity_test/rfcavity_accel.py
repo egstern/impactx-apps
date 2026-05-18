@@ -7,22 +7,21 @@
 # -*- coding: utf-8 -*-
 
 import sys, os
+import cmath
 import numpy as np
 #import transformation_utilities as pycoord
 
-import synergia
-PCONST = synergia.foundation.pconstants
-mp = PCONST.mp
-c = PCONST.c
+from scipy.constants import m_p, c, eV
+
+mp_mev = 1.0e-6 * m_p * c**2/eV
+
 
 import amrex.space3d as amr
 from impactx import Config, ImpactX, elements
 
-
-
 ################
 
-N_part = 1024
+N_part = 16
 
 sim = ImpactX()
 
@@ -30,32 +29,32 @@ sim = ImpactX()
 sim.particle_shape = 2  # B-spline order
 sim.space_charge = False
 # sim.diagnostics = False  # benchmarking
-sim.slice_step_diagnostics = False
+sim.diagnostics = True
+sim.slice_step_diagnostics = True
 
 # domain decomposition & space charge mesh
 sim.init_grids()
 
-refpart = synergia.foundation.Reference_particle(1, mp, 0.8+mp)
-gamma = refpart.get_gamma()
-beta = refpart.get_beta()
+kin_energy_mev = 800.0
 
-energy_MeV = (refpart.get_total_energy() - mp)*1000.0
 bunch_charge_C = 0.5e10  # used with space charge
 
 #   reference particle
 ref = sim.particle_container().ref_particle()
-ref.set_charge_qe(1.0).set_mass_MeV(mp*1000).set_kin_energy_MeV(energy_MeV)
-qm_eev = 1.0 / (mp*1.0e9)  # 1/protom mass  in eV
+ref.set_charge_qe(1.0).set_mass_MeV(mp_mev).set_kin_energy_MeV(kin_energy_mev)
+beta = ref.beta
+
+qm_eev = 1.0 / (mp_mev*1.0e6)  # 1/protom mass  in eV
 ref.z = 0
 
 pc = sim.particle_container()
 
-# We'rd going use parameters like Booster cavities.
+# We're going use parameters like Booster cavities.
 # L = 2.35. KE = 0.8 GeV, 22 cavities, 1 MV total voltage, ring
 # length = 474.202752, harmonic number=84
 print('beta: ', beta)
-#V = 1.0e-3/22 # 1 MV spread over 22 cavities
-V = 0.2e-3/22 # 200 KV spread over 22 cavities
+V = 1.0/22 # 1 MV spread over 22 cavities
+#V = 0.2/22 # 200 KV spread over 22 cavities
 h = 84 # harmonic number 
 L = 474.202752 # m
 
@@ -63,8 +62,8 @@ freq = h * beta * c/L
 bucket_length = L/h
 
 print('frequency: ', freq)
-print('bucket length: ', bucket_length)
-print('cavity voltage [GV]: ', V)
+print('bucket length: ', bucket_length, 'm')
+print('cavity voltage [MV]: ', V)
 
 dx = np.zeros(N_part, dtype='d')
 dpx = np.zeros(N_part, dtype='d')
@@ -73,18 +72,30 @@ dpy = np.zeros(N_part, dtype='d')
 dt = np.zeros(N_part, dtype='d')
 dpt = np.zeros(N_part, dtype='d')
 
+
+
+#particle 0: at z=0
+#particle [1:5) at z=0 with px,py components
+#particle [5:9) at z=+bucket_length/4 with px, py components
+#particle [9:13) at z=-bucket_length/4 with px, py components
+
 # distribute the particles at uniform phase from -pi to +511/512 pi in the
 # bucket. particle 512 should be at 0 phase.
 
-dl = bucket_length/N_part * (1/beta)
 
-for i in range(N_part):
-    dt[i] = dl * (i-N_part//2)
-phi = (np.arange(N_part) - N_part//2) * 2 * np.pi/N_part
+for i in range(1,5):
+    dpx[i] =  1.0e-2 * ((1j)**i).real
+    dpy[i] =  1.0e-2 * ((1j)**i).imag
 
-print('most negative phase particle (0): ', dt[0])
-print(f'middle phase particle ({N_part//2}): ', dt[N_part//2])
-print(f'most positive phase particle ({N_part-1}): ', dt[-1])
+for i in range(5,9):
+    dpx[i] =  1.0e-2 * ((1j)**i).real
+    dpy[i] =  1.0e-2 * ((1j)**i).imag
+    dt[i] = bucket_length/(4*beta)
+
+for i in range(9,13):
+    dpx[i] =  1.0e-2 * ((1j)**i).real
+    dpy[i] =  1.0e-2 * ((1j)**i).imag
+    dt[i] = -bucket_length/(4*beta)
 
 if not Config.have_gpu:  # initialize using cpu-based PODVectors
     dx_podv = amr.PODVector_real_std()
@@ -119,13 +130,15 @@ pc.add_n_particles(
 )
 
 monitor = elements.BeamMonitor("monitor", backend="h5")
+# put in two caviites
 sim.lattice.extend(
     [
         monitor,
         # below transition phase=-90.0
-        elements.ShortRF((V/mp), freq, phase=-90.0, name="rfc"),
-        # above transition phase should be 90
-        # elements.ShortRF((V/mp), freq, phase=90.0, name="rfc"),
+        elements.ShortRF((V/mp_mev), freq, phase=0.0, name="rfc"),
+        monitor,
+        elements.ExactDrift(1.0, name="drift1"),
+        elements.ShortRF((V/mp_mev), freq, phase=0.0, name="rfc"),
         monitor,
     ]
 )

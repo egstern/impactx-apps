@@ -57,6 +57,9 @@ finish_t = finish_beam['position_t']
 start_pt = start_beam['momentum_t']
 finish_pt = finish_beam['momentum_t']
 
+N = start_pt.shape[0]
+phi = (np.arange(N) - N//2) * (2 * np.pi)/N
+
 plt.figure()
 plt.title('positions')
 plt.plot(start_t, 'D', label='Start t')
@@ -72,15 +75,23 @@ plt.legend(loc='best')
 # calculate delta-E from pt
 dfinish_gamma = -start_betagamma * finish_pt
 
-volt = (1.0/22)
+volt = (0.2/22) # 0.2 MeV over 22 cavities
 plt.figure()
-plt.title('Energy change [MeV]')
+plt.title('Energy change [MeV] vs. T')
 plt.plot(start_t, dfinish_gamma*mp_mev, '-', label='dE [MeV)')
 plt.xlabel('position t [m]')
 plt.ylabel('dE [MeV]')
 plt.legend(loc='best')
 plt.grid(True)
 plt.savefig('dE.png')
+
+plt.figure()
+plt.title('Energy change [MeV] vs. phi')
+plt.plot(phi, dfinish_gamma*mp_mev, '-', label='dE [MeV)')
+plt.xlabel('phi [rad]')
+plt.ylabel('dE [MeV]')
+plt.legend(loc='best')
+plt.grid(True)
 
 plt.show()
 
