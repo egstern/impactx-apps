@@ -1,0 +1,19 @@
+/*
+ *  This MAD-X script reads the FCCee lattice contained
+ *  in the file fccee_x.madx and saves lattice functions
+ *  for elements defined in the fccee_p_ring sequence running
+ *  at energy of 45.6 GeV specified by Arianna Formenti via
+ *  Slack message 2026-05-27.
+ */
+
+set, format=22.18;
+
+call, file="fccee_z.madx";
+
+beam, particle=electron, energy=45.6;use, period=fccee_p_ring;
+select, flag=twiss, clear;
+select, flag=twiss, column=name, s, betx, alfx, mux, bety, alfy, muy, dx, dpx, dy, dpy;
+
+
+
+twiss, file="fccee_z.twiss";
