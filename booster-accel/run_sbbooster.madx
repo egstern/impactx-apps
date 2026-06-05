@@ -1,0 +1,15 @@
+/*
+ *  This MAD-X script reads the simplified Booster lattice contained
+ *  in the file sbbooster-cooked.madx and saves lattice functions
+ *  for elements defined in the "booster" line.
+ */
+
+set, format=22.18;
+
+call, file="sbbooster-cooked.madx";
+
+use, period=booster;
+select, flag=twiss, clear;
+select, flag=twiss, sequence=booster, column=name, s, betx, alfx, mux, bety, alfy, muy, dx, dpx, dy, dpy;
+
+twiss, file="sbbooster-cooked.twiss";

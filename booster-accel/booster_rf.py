@@ -4,8 +4,6 @@ import sys, os
 import numpy as np
 from scipy import interpolate
 
-
-
 # The Booster RF ramp looks approximately like:
 
 # time [s], voltage [MV]
@@ -28,8 +26,7 @@ from scipy import interpolate
 
 class PIP2ramp:
     # there are 14 vsteps with the final end point
-    # the voltages are all in MV but all getter routines will
-    # return GV
+    # the voltages are all in MV.
     rf_times_and_volts = np.array([ [0.000365, 0.2],  # start injection
                           [0.0009, 0.2],  # ramp for squeeze
                           [0.0012, 1.0],   # continue squeese
@@ -78,8 +75,10 @@ class PIP2ramp:
 
 def main():
     import matplotlib.pyplot as plt
+    NPNTS = 1000 # the number of voltage opints to plot
+
     pip2ramp = PIP2ramp()
-    t = 0.0255*np.arange(1000)/1000
+    t = 0.0255*np.arange(NPNTS)/NPNTS
     v = np.array([pip2ramp.get_rf_voltage_by_time(tt) for tt in t])
     plt.plot(t, v)
     plt.xlabel('time [s]')
