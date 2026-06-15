@@ -3,11 +3,15 @@
 import argparse
 
 class Options:
-    turns = 15071
+    #turns = 15071
+    turns = 1500
+    #turns = 15
     injection_energy = 800.0 # MeV
     final_energy = 8000.0 # MeV
     generate_bunch = False
-    particles_file = "pip-ii-injected-58k.h5" # openPMD file converted from Synergia
+    particles_file = "pip-ii-injected-58k-xform.h5" # openPMD file converted from Synergia
+    # with linear transformation from the twiss functions at its generation
+    # to match the beginning of the sbbooster lattice.
     full_booster_charge = 6.7e12 # full PIP-II intensity
     harmonic_number = 84
     full_buckets = 81 # 3 buckets are empty for injection and extraction
