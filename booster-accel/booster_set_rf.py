@@ -4,10 +4,10 @@ import impactx
 # set the RF cavity voltage
 # phaseR in radians synchronous phase = 0
 # total_V is in MV
-def set_rf(sim, total_V, freq=freq, phaseR=0, above_transition=False):
+def set_rf(sim, total_V, freq, phaseR=0, above_transition=False):
     mass = sim.beam.ref.mass_MeV
 
-    rf_cavities = sim.lattice.filter(kind='ShortRF')
+    rf_cavities = sim.lattice.select(kind='ShortRF')
     ncav = len(rf_cavities)
 
     V_per_cav = total_V/ncav
