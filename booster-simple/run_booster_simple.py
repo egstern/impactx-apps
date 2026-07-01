@@ -406,6 +406,7 @@ def main():
     final_monitor = opts.final_monitor
     ix_lattice = syn2_to_impactx(lattice, init_monitor, final_monitor)
 
+    sim.verbose = 0
     # the monitor is the last element in the list. Run a 1 turn simulation
     # with just the monitor to get the initial distribution
     if final_monitor:
