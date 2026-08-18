@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
 #
 # Copyright 2022-2023 ImpactX contributors
-# Authors: Ryan Sandberg, Axel Huebl, Chad Mitchell
+# Authors: Eric G. Stern, Ryan Sandberg, Axel Huebl, Chad Mitchell
 # License: BSD-3-Clause-LBNL
 #
 # -*- coding: utf-8 -*-
 
 import numpy as np
-#import transformation_utilities as pycoord
 
-import synergia
-PCONST = synergia.foundation.pconstants
-mp = PCONST.mp
+from scipy.constants import m_p, c, eV
 
 import amrex.space3d as amr
 from impactx import Config, ImpactX, elements
-
-
 
 ################
 
@@ -33,20 +28,21 @@ sim.slice_step_diagnostics = False
 # domain decomposition & space charge mesh
 sim.init_grids()
 
-refpart = synergia.foundation.Reference_particle(1, mp, 0.8+mp)
-gamma = refpart.get_gamma()
+mp_mev = 1.0e-6 * m_p * c**2/eV
 
-energy_MeV = (refpart.get_total_energy() - mp)*1000.0
+energy_MeV = mp_mev + 2.5 # 2.5 MeV
+
 bunch_charge_C = 0.5e10  # used with space charge
 
 #   reference particle
-ref = sim.particle_container().ref_particle()
-ref.set_charge_qe(1.0).set_mass_MeV(mp*1000).set_kin_energy_MeV(energy_MeV)
-qm_eev = 1.0 / (mp*1.0e9)  # 1/protom mass  in eV
+ref = sim.beam.ref
+ref.set_species("proton")
+ref.set_kin_energy_MeV(energy_MeV)
+ref.set_charge_qe(1.0)
+qm_eev = 1.0 / (mp_mev*1.0e6)  # 1/protom mass  in eV
 ref.z = 0
 
 pc = sim.particle_container()
-
 
 dx = np.zeros(N_part, dtype='d')
 dpx = np.zeros(N_part, dtype='d')
@@ -104,7 +100,7 @@ sim.lattice.extend(
     [
         monitor,
         # Sbend, 90 degree bend radius 1 m
-        elements.ExactSbend(np.pi/2, 90.0, name="sbend", nslice=4),
+        elements.ExactSbend(np.pi/2, 90.0, name="sbend", nslice=1),
         monitor,
     ]
 )

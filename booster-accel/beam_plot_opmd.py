@@ -94,7 +94,8 @@ class Options:
         self.maxv = sys.float_info.max
         self.contour = None
         self.num_contour = None
-        self.iteration = 1
+        self.iteration = -1
+        self.turn = -1
 
 def do_error(message):
     sys.stderr.write(message + '\n')
@@ -146,6 +147,8 @@ def handle_args(args):
                 options.show = False
             elif arg.find('--iteration') == 0:
                 options.iteration = int(arg.split('=')[1])
+            elif arg.find('--turn') == 0:
+                options.turn = int(arg.split('=')[1])
             elif arg.find('--minh') == 0:
                 options.minh = float(arg.split('=')[1])
             elif arg.find('--maxh') == 0:
@@ -168,7 +171,10 @@ def do_plots(options):
     iterations = list(series.iterations)
     #h5 = h5py.File(options.inputfile, 'r')
     #f = Hdf5_file(options.inputfile, 'r')
-    if options.iteration not in iterations:
+    if options.turn >= 0:
+        options.iteration = iterations[options.turn]
+        print("plotting turn ", options.turn, " iteration: ", options.iteration)
+    if options.iteration > 0 and  options.iteration not in iterations:
         do_error(f'iteration {options.iteration} not present in file')
 
     beam = series.iterations[options.iteration].particles["beam"]
