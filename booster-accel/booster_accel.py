@@ -13,6 +13,9 @@ from scipy.constants import c, eV, m_p, pi
 
 from get_lattice import get_lattice
 from booster_rf import *
+
+from booster_accel_options import opts
+
 pip2ramp = PIP2ramp()
 
 from booster_momentum import *
@@ -20,21 +23,21 @@ from booster_momentum import *
 from booster_set_rf import set_rf
 
 from impactx import ImpactX, distribution, elements, twiss, synmadx
+import amrex.space3d as amr
 
-from booster_accel_options import Options
 from scipy.constants import c
 
 from mpi4py import MPI
-myrank = MPI.COMM_WORLD.rank
 
 #========================================================================
 
-opts = Options()
+
+myrank = MPI.COMM_WORLD.rank
 
 # write out RF and energy status turn-by-turn on rank 0
 if myrank == 0:
     runstatus = open('runstatus.txt', 'w')
-    print("turn time gamma V phase", file=runstatus)
+    print("turn time particles gamma V phase", file=runstatus, flush=True)
     pass
 
 # Update RF cavities for next turn
@@ -61,8 +64,13 @@ def update_rf_cavities_next_turn(sim):
         phase_needed = np.arcsin(required_energy_gain/current_V)
     set_rf(sim, current_V, freq=new_freq, phaseR=phase_needed, above_transition=above_transition)
 
-    print(sim.tracking_period, current_time, current_gamma, current_V,
-          phase_needed, file=runstatus, flush=True)
+    # must get total_num on all ranks
+    total_num = sim.beam.total_number_of_particles()
+
+    if myrank == 0:
+        print(sim.tracking_period, current_time, total_num,
+              current_gamma, current_V,
+              phase_needed, file=runstatus, flush=True)
 
     return
 
@@ -72,14 +80,17 @@ def update_rf_cavities_next_turn(sim):
 # main driver of the simulation
 def main():
 
-    opts = Options()
+    if opts.nancheck:
+        pp = amr.ParmParse("amrex")
+        pp.add("init_snan", True)
+        pp.add("fpe_trap_invalid", True)
 
     sim = ImpactX()
 
     # set numerical parameters and IO control
     sim.space_charge = False
     # sim.diagnostics = False  # benchmarking
-    sim.slice_step_diagnostics = True
+    sim.slice_step_diagnostics = False # turn off all the RBC output
 
     # domain decomposition & space charge mesh
     sim.init_grids()
@@ -87,10 +98,11 @@ def main():
     # Read lattice and get bucket length
     ix_lattice = get_lattice()
     lattice_length = sum(elem.ds for elem in ix_lattice)
-    print("lattice length: ", lattice_length)
-
     bucket_length = lattice_length/opts.harmonic_number
-    print("bucket_length: ", bucket_length)
+
+    if myrank == 0:
+        print("lattice length: ", lattice_length)
+        print("bucket_length: ", bucket_length)
     
     # Set up reference particle
     init_energy = opts.injection_energy
