@@ -115,13 +115,15 @@ def main():
     sim.beam.set_bucket_length(bucket_length)
 
     # element to read in particles
-    particle_source = elements.Source(distribution="openPMD", openpmd_path=opts.particles_file, active_once=True, name="particles")
-    monitor = elements.BeamMonitor("monitor.h5", backend="h5")
+    particle_source = elements.Source(distribution="openPMD", openpmd_path=opts.particles_file, active_once=True, load_ref_particle=True, name="particles")
+    monitor0 = elements.BeamMonitor("monitor", period_sample_slices=65536*65535-1)
+    monitor1 = elements.BeamMonitor("monitor")
 
     sim.lattice.clear()
     sim.lattice.append(particle_source)
+    sim.lattice.extend(monitor0)
     sim.lattice.extend(ix_lattice)
-    sim.lattice.append(monitor)
+    sim.lattice.append(monitor1)
 
     # Set up for updating RF and frequency
     sim.hook["before_period"] = update_rf_cavities_next_turn
@@ -133,7 +135,6 @@ def main():
     sim.finalize()
 
     return
-
 
 #========================================================================
 

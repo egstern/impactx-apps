@@ -52,7 +52,16 @@ def main():
     print('particle energy (MeV): ', gamma_ref * mass_ref_MeV)
     charge_C = beam.get_attribute('charge_C')
     print('charge [C]: ', charge_C)
+    s_ref = beam.get_attribute('s_ref')
+    t_ref = beam.get_attribute('t_ref')
+    x_ref = beam.get_attribute('x_ref')
+    px_ref = beam.get_attribute('px_ref')
+    y_ref = beam.get_attribute('y_ref')
+    py_ref = beam.get_attribute('py_ref')
+    z_ref = beam.get_attribute('z_ref')
+    pz_ref = beam.get_attribute('pz_ref')
 
+    print('ref s: ', s_ref, ', ref t: ', t_ref)
     df = beam.to_df()
     print(len(df), ' particles in iteration')
 
@@ -74,6 +83,14 @@ def main():
     ref.set_charge_qe(1.0)
     ref.set_kin_energy_MeV(mass_ref_MeV * (gamma_ref - 1))
     qm_eev = 1.0/(mass_ref_MeV * 1.0e6)
+    ref.s = s_ref
+    ref.t = t_ref
+    ref.x = x_ref
+    ref.px = px_ref
+    ref.y = y_ref
+    ref.py= py_ref
+    ref.z = z_ref
+    ref.pz = pz_ref
 
     n_local = len(df)
 
