@@ -150,9 +150,9 @@ cpshort: line=(hsxx, vsxx, qsxx, bpms, qssxx, sxsxx, sssxx);
 ! long corrector package
 hlxx: drift, l=0.024, type=longstraight;
 vlxx: drift, l=0.024, type=longstraight;;
-qlxx: quadrupole, k1=0.0, l=0.024, k1=-0.07389609966299509614, type=shortstraight;
+qlxx: quadrupole, k1=0.0, l=0.024, k1=-0.07389609966299509614, type=longstraight;
 ! multipole not included
-bpml: drift, l=0.024, type=shortstraight;
+bpml: drift, l=0.024, type=longstraight;
 qlsxx: drift, l=0.024, type=longstraight; // skew quad
 ! multipole not included
 sxlxx: sextupole, k2=0.0, l=0.024, k2=8.59179207911400411, type=longstraight;

@@ -32,5 +32,7 @@ opts.add("gamma_tr", 5.449167323, "gamma transition")
 
 opts.add("nancheck", False, "activate runtime checking for NaN in AmREX")
 
+opts.add("slice_step_diagnostics", False, "enable reduced beam characteristics per slice")
+
 job_mgr = synergia_workflow.Job_manager("booster_accel.py", opts, ["sbbooster-cooked.madx", "booster_rf.py", "booster_set_rf.py", "booster_momentum.py", "get_lattice.py", "syn2_to_impactx.py"])
 

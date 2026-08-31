@@ -22,23 +22,29 @@ from booster_momentum import *
 
 from booster_set_rf import set_rf
 
-from impactx import ImpactX, distribution, elements, twiss, synmadx
+#from booster_apertures import set_apertures
+
+from impactx import ImpactX, distribution, elements, twiss, synmadx, push
 import amrex.space3d as amr
 
 from scipy.constants import c
 
-from mpi4py import MPI
+# Avoid mpi4py define a global myrank variable.
+# Getting the local rank from AMReX only works after init_grids which happens
+# in the main routine so main has to define myrank in a global class
+
+class runstate:
+    def __init__(self):
+        return
+    myrank = -1
+    statfile = None
+
+
+#from mpi4py import MPI
 
 #========================================================================
 
-
-myrank = MPI.COMM_WORLD.rank
-
-# write out RF and energy status turn-by-turn on rank 0
-if myrank == 0:
-    runstatus = open('runstatus.txt', 'w')
-    print("turn time particles gamma V phase", file=runstatus, flush=True)
-    pass
+myrank = -1
 
 # Update RF cavities for next turn
 def update_rf_cavities_next_turn(sim):
@@ -67,10 +73,10 @@ def update_rf_cavities_next_turn(sim):
     # must get total_num on all ranks
     total_num = sim.beam.total_number_of_particles()
 
-    if myrank == 0:
+    if runstate.myrank == 0:
         print(sim.tracking_period, current_time, total_num,
               current_gamma, current_V,
-              phase_needed, file=runstatus, flush=True)
+              phase_needed, file=runstate.statfile, flush=True)
 
     return
 
@@ -90,17 +96,26 @@ def main():
     # set numerical parameters and IO control
     sim.space_charge = False
     # sim.diagnostics = False  # benchmarking
-    sim.slice_step_diagnostics = False # turn off all the RBC output
+    # set slice step diagnostics
+    sim.slice_step_diagnostics = opts.slice_step_diagnostics
 
     # domain decomposition & space charge mesh
     sim.init_grids()
     
+    runstate.myrank = amr.ParallelDescriptor.MyProc()
+
+    # create file to write out RF and energy status turn-by-turn on rank 0
+    if runstate.myrank == 0:
+        runstate.statfile = open('runstatus.txt', 'w')
+        print("turn time particles gamma V phase", file=runstate.statfile, flush=True)
+        pass
+
     # Read lattice and get bucket length
     ix_lattice = get_lattice()
     lattice_length = sum(elem.ds for elem in ix_lattice)
     bucket_length = lattice_length/opts.harmonic_number
 
-    if myrank == 0:
+    if runstate.myrank == 0:
         print("lattice length: ", lattice_length)
         print("bucket_length: ", bucket_length)
     
@@ -116,12 +131,11 @@ def main():
 
     # element to read in particles
     particle_source = elements.Source(distribution="openPMD", openpmd_path=opts.particles_file, active_once=True, load_ref_particle=True, name="particles")
-    monitor0 = elements.BeamMonitor("monitor", period_sample_slices=65536*65535-1)
+    monitor0 = elements.BeamMonitor("monitor", period_sample_intervals=65536*32768-1)
     monitor1 = elements.BeamMonitor("monitor")
 
     sim.lattice.clear()
-    sim.lattice.append(particle_source)
-    sim.lattice.extend(monitor0)
+    sim.lattice.append(monitor0)
     sim.lattice.extend(ix_lattice)
     sim.lattice.append(monitor1)
 
@@ -130,8 +144,14 @@ def main():
 
     sim.periods = opts.turns
     sim.verbose = 0
+
+    # load particles manually before tracking
+    push(sim.beam, particle_source)
     sim.track_particles()
     
+    # save final runstate line
+    update_rf_cavities_next_turn(sim)
+
     sim.finalize()
 
     return

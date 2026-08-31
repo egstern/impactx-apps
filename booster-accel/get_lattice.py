@@ -13,7 +13,7 @@ from syn2_to_impactx import syn2_to_impactx
 def get_lattice():
     reader = synmadx.MadX_reader()
     s_lattice = reader.get_lattice(lattice_line, lattice_file)
-    ix_lattice = syn2_to_impactx(s_lattice)
+    ix_lattice = syn2_to_impactx(s_lattice, init_monitor=False, final_monitor=False)
     return ix_lattice
 
 def main():

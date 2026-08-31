@@ -577,7 +577,7 @@ def cnv_octupole(elem, order):
 
 def cnv_monitor(elem):
     fname = elem.get_string_attribute("file", "monitor")
-    ix_elem = impactx.elements.BeamMonitor(name=fname, backend="h5")
+    ix_elem = impactx.elements.BeamMonitor(name=fname)
     return ix_elem
 
 def cnv_marker(elem):
@@ -669,7 +669,7 @@ def syn2_to_impactx(lattice, init_monitor=True, final_monitor=True, order=Order.
     if final_monitor:
         # define monitor if it hasn't already been defined
         if not monitor:
-            monitor = impactx.elements.BeamMonitor("monitor", backend="h5")
+            monitor = impactx.elements.BeamMonitor("monitor")
         impactx_lattice.append(monitor)
 
     return impactx_lattice
