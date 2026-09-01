@@ -9,6 +9,8 @@ short_straight_aperture = 4.5 # diameter in inches
 long_straight_aperture = 3.125 # diameter in inches
 rf_aperture = 2.25 # diameter in inches
 
+# These aperture definitions come from digitizing Figure 1 of
+# preprint FERMILAB-CONF-12-194-AD.
 fmag_vertices = [(3.74,0.506), (-2.16, +1.09), (-2.16, -1.09), (3.74, -0.506)] # in inches
 dmag_vertices = [(3.50,1.52), (-2.40, +0.901), (-2.40, -0.901), (3.50, -1.52)] # in inches
 
@@ -37,10 +39,10 @@ C = -dmag_vertices[0][0]*(dmag_vertices[1][1] - dmag_vertices[0][1]) + dmag_vert
 
 dmag_min_radius2 = inches_to_m**2 * C**2/(A**2 + B**2)
 
-FMAG_aperture = elements.PolygonApertures(
-    fmag_aperture_x, fmag_aperture_y, fmag_min_radius2)
-DMAG_aperture = elements.PolygonApertures(
-    dmag_aperture_x, dmag_aperture_y, dmag_min_radius2)
+FMAG_aperture = elements.PolygonAperture(
+    fmag_vertex_x, fmag_vertex_y, fmag_min_radius2)
+DMAG_aperture = elements.PolygonAperture(
+    dmag_vertex_x, dmag_vertex_y, dmag_min_radius2)
 
 
 # The short straight section of the Booster is roughly the 1.5m in
@@ -63,7 +65,7 @@ def set_short_straight_apertures(lattice):
 
 long_straight_names = r"(dlong)|(hlxx)|(vlxx)|(qlxx)|(qlsxx)|(sxlxx)|(sslxx)|(drifta)|(driftb)|(dmidls)|(drifte)"
 
-def long_straight_apertures(lattice):
+def set_long_straight_apertures(lattice):
     long_straights = lattice.select(name=long_straight_names)
     for elem in long_straights:
         elem.aperture_x = long_straight_aperture*inches_to_m/2.0
@@ -72,13 +74,12 @@ def long_straight_apertures(lattice):
 
 rf_name = "rfc"
 
-def rf_apertures(lattice):
+def set_rf_apertures(lattice):
     rf_elems = lattice.select(name=rf_name)
     for elem in rf_elems:
         elem.aperture_x = rf_aperture*inches_to_m/2.0
         elem.aperture_y = rf_aperture*inches_to_m/2.0
     return len(long_straights)
-
 
 # copy elements from old_lattice into a new lattice inserting
 # proper polygon apertures around the FMAG and DMAG magnets
@@ -104,3 +105,12 @@ def insert_apertures(old_lattice):
             new_lattice.append(elem)
     return new_lattice
 
+# turn on short_straight, long_straight, and RF apertures by adding
+# element parameters in-place
+def set_apertures(lattice):
+    set_short_straight_apertures(lattice)
+    set_long_straight_apertures(lattice)
+    set_rf_apertures_(lattice)
+    use_lattice = insert_apertures(lattice)
+    return use_lattice
+    
