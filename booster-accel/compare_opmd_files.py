@@ -43,6 +43,7 @@ def main(file1, file2, turn1, turn2):
 
     if len(df1) != len(df2):
         print("number of particles does not match: ", len(df1), len(df2))
+        return
     print("number particles: ", len(df1))
 
     coords = [ "position_x", "position_y", "position_t",
