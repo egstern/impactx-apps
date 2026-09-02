@@ -52,6 +52,7 @@ DMAG_aperture = elements.PolygonAperture(
 
 short_straight_names = r"(sa)|(hsxx)|(vsxx)|(qsxx)|(bpms)|(qssxx)|(sxsxx)|(sssxx)|(sb)|(mins)"
 
+# lattice must have type KnownElementsList
 def set_short_straight_apertures(lattice):
     short_straights = lattice.select(name=short_straight_names)
     for elem in short_straights:
@@ -59,12 +60,13 @@ def set_short_straight_apertures(lattice):
         elem.aperture_y = short_straight_aperture*inches_to_m/2.0
     return len(short_straights)
 
-# The long straight section of the Booster is the roughtly 6m space between the
+# The long straight section of the Booster is the roughly 6m space between the
 # two defocussing gradient magnets including the correction package
 # elements.
 
 long_straight_names = r"(dlong)|(hlxx)|(vlxx)|(qlxx)|(qlsxx)|(sxlxx)|(sslxx)|(drifta)|(driftb)|(dmidls)|(drifte)"
 
+# lattice must have type KnownElementsList
 def set_long_straight_apertures(lattice):
     long_straights = lattice.select(name=long_straight_names)
     for elem in long_straights:
@@ -72,17 +74,19 @@ def set_long_straight_apertures(lattice):
         elem.aperture_y = long_straight_aperture*inches_to_m/2.0
     return len(long_straights)
 
-rf_name = "rfc"
+rf_name = "drrf"
 
+# lattice must have type KnownElementsList
 def set_rf_apertures(lattice):
     rf_elems = lattice.select(name=rf_name)
     for elem in rf_elems:
         elem.aperture_x = rf_aperture*inches_to_m/2.0
         elem.aperture_y = rf_aperture*inches_to_m/2.0
-    return len(long_straights)
+    return len(rf_elems)
 
 # copy elements from old_lattice into a new lattice inserting
 # proper polygon apertures around the FMAG and DMAG magnets
+
 def insert_apertures(old_lattice):
     new_lattice = elements.KnownElementsList([])
     for elem in old_lattice:
@@ -110,7 +114,7 @@ def insert_apertures(old_lattice):
 def set_apertures(lattice):
     set_short_straight_apertures(lattice)
     set_long_straight_apertures(lattice)
-    set_rf_apertures_(lattice)
+    set_rf_apertures(lattice)
     use_lattice = insert_apertures(lattice)
     return use_lattice
     

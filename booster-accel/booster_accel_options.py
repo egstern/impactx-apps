@@ -8,6 +8,7 @@ opts.add("turns", 1500, "number of turns")
 opts.add("injection_energy", 800.0, "injection energy (MeV)")
 opts.add("final_energy", 8000.0, "extraction energy (MeV)")
 opts.add("generate_bunch", False, "whether to generate a bunch or read it from a file")
+opts.add("activate_apertures", False, "turn on apertures")
 
 # openPMD file converted from Synergia
 # with linear transformation from the twiss functions at its generation
@@ -34,5 +35,5 @@ opts.add("nancheck", False, "activate runtime checking for NaN in AmREX")
 
 opts.add("slice_step_diagnostics", False, "enable reduced beam characteristics per slice")
 
-job_mgr = synergia_workflow.Job_manager("booster_accel.py", opts, ["sbbooster-cooked.madx", "booster_rf.py", "booster_set_rf.py", "booster_momentum.py", "get_lattice.py", "syn2_to_impactx.py"])
+job_mgr = synergia_workflow.Job_manager("booster_accel.py", opts, ["sbbooster-cooked.madx", "booster_rf.py", "booster_set_rf.py", "booster_momentum.py", "get_lattice.py", "booster_apertures.py", "syn2_to_impactx.py"])
 

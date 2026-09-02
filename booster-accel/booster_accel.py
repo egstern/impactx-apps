@@ -22,7 +22,7 @@ from booster_momentum import *
 
 from booster_set_rf import set_rf
 
-#from booster_apertures import set_apertures
+from booster_apertures import set_apertures
 
 from impactx import ImpactX, distribution, elements, twiss, synmadx, push
 import amrex.space3d as amr
@@ -43,8 +43,6 @@ class runstate:
 #from mpi4py import MPI
 
 #========================================================================
-
-myrank = -1
 
 # Update RF cavities for next turn
 def update_rf_cavities_next_turn(sim):
@@ -111,14 +109,31 @@ def main():
         pass
 
     # Read lattice and get bucket length
-    ix_lattice = get_lattice()
-    lattice_length = sum(elem.ds for elem in ix_lattice)
+    ix_lattice_orig = get_lattice()
+
+    # Write out the lattice
+    if runstate.myrank == 0:
+        with open('booster_lattice_asread.py', 'w') as f:
+            f.write(elements.KnownElementsList(ix_lattice_orig).to_py())
+
+    lattice_length = sum(elem.ds for elem in ix_lattice_orig)
     bucket_length = lattice_length/opts.harmonic_number
 
     if runstate.myrank == 0:
         print("lattice length: ", lattice_length)
         print("bucket_length: ", bucket_length)
     
+    # turn on apertures if requested
+    if opts.activate_apertures:
+        real_lattice = set_apertures(elements.KnownElementsList(ix_lattice_orig))
+    else:
+        real_lattice = elements.KnownElementsList(ix_lattice_orig)
+
+    # Write out the lattice with apertures
+    if runstate.myrank == 0:
+        with open('booster_lattice_asrun.py', 'w') as f:
+            f.write(real_lattice.to_py())
+
     # Set up reference particle
     init_energy = opts.injection_energy
     ref = sim.beam.ref
@@ -136,7 +151,7 @@ def main():
 
     sim.lattice.clear()
     sim.lattice.append(monitor0)
-    sim.lattice.extend(ix_lattice)
+    sim.lattice.extend(real_lattice)
     sim.lattice.append(monitor1)
 
     # Set up for updating RF and frequency
