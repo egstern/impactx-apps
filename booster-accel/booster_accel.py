@@ -146,8 +146,8 @@ def main():
 
     # element to read in particles
     particle_source = elements.Source(distribution="openPMD", openpmd_path=opts.particles_file, active_once=True, load_ref_particle=True, name="particles")
-    monitor0 = elements.BeamMonitor("monitor", period_sample_intervals=65536*32768-1)
-    monitor1 = elements.BeamMonitor("monitor")
+    monitor0 = elements.BeamMonitor("monitor", backend='bp5', encoding='v', period_sample_intervals=65536*32768-1)
+    monitor1 = elements.BeamMonitor("monitor", backend='bp5', encoding='v')
 
     sim.lattice.clear()
     sim.lattice.append(monitor0)
