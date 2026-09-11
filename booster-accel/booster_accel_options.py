@@ -8,12 +8,13 @@ opts.add("turns", 1500, "number of turns")
 opts.add("injection_energy", 800.0, "injection energy (MeV)")
 opts.add("final_energy", 8000.0, "extraction energy (MeV)")
 opts.add("generate_bunch", False, "whether to generate a bunch or read it from a file")
-opts.add("activate_apertures", False, "turn on apertures")
+opts.add("apertures", False, "turn on apertures")
 
 # openPMD file converted from Synergia
 # with linear transformation from the twiss functions at its generation
 # to match the beginning of the sbbooster lattice.
 opts.add("particles_file", "/pscratch/sd/e/egstern/pip2/pip-ii-injected/pip-ii-injected-583k-xform-opmd.h5", "file from which to read initial particle distribution")
+opts.add("starting_turn", None, "turn to read from file and begin simulation", int)
 
 opts.add("full_booster_charge", 6.7e12, "Charge of a fully loaded Booster")
 opts.add("harmonic_number", 84, "The harmonic number of the Booster RF")

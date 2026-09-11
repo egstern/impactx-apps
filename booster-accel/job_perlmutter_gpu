@@ -25,6 +25,8 @@ __walltime{{#SBATCH -t @@walltime@@}}{{}}__
 #SBATCH --gpus-per-node=4
 #SBATCH -o ImpactX-%j.out
 #SBATCH -e ImpactX-%j.err
+#SBATCH --mail-user=egstern@fnal.gov
+#SBATCH --mail-type=ALL
 
 # The following line is needed to use submit=1
 #synergia_workflow_submitter:sbatch

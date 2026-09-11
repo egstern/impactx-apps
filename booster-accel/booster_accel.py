@@ -38,7 +38,7 @@ class runstate:
         return
     myrank = -1
     statfile = None
-
+    phase = -1.0
 
 #from mpi4py import MPI
 
@@ -66,7 +66,14 @@ def update_rf_cavities_next_turn(sim):
         phase_needed = np.pi/2
     else:
         phase_needed = np.arcsin(required_energy_gain/current_V)
-    set_rf(sim, current_V, freq=new_freq, phaseR=phase_needed, above_transition=above_transition)
+
+    # jump phase above transition to the preserve stable bucket
+    if above_transition:
+        phase = np.pi - phase_needed
+    else:
+        phase = phase_needed
+
+    set_rf(sim, current_V, freq=new_freq, phaseR=phase)
 
     # must get total_num on all ranks
     total_num = sim.beam.total_number_of_particles()
@@ -74,7 +81,7 @@ def update_rf_cavities_next_turn(sim):
     if runstate.myrank == 0:
         print(sim.tracking_period, current_time, total_num,
               current_gamma, current_V,
-              phase_needed, file=runstate.statfile, flush=True)
+              phase, file=runstate.statfile, flush=True)
 
     return
 
@@ -124,7 +131,7 @@ def main():
         print("bucket_length: ", bucket_length)
     
     # turn on apertures if requested
-    if opts.activate_apertures:
+    if opts.apertures:
         real_lattice = set_apertures(elements.KnownElementsList(ix_lattice_orig))
     else:
         real_lattice = elements.KnownElementsList(ix_lattice_orig)
@@ -146,6 +153,9 @@ def main():
 
     # element to read in particles
     particle_source = elements.Source(distribution="openPMD", openpmd_path=opts.particles_file, active_once=True, load_ref_particle=True, name="particles")
+    if opts.starting_turn:
+        particle_source.load_step_index = opts.starting_turn
+
     monitor0 = elements.BeamMonitor("monitor", backend='bp5', encoding='v', period_sample_intervals=65536*32768-1)
     monitor1 = elements.BeamMonitor("monitor", backend='bp5', encoding='v')
 
