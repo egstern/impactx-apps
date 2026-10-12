@@ -16,6 +16,7 @@ MT = synergia.lattice.marker_type
 class opts:
     def __init__(self):
         return
+    init_energy = 0.4001545611624435
     enable_rf = True
     rf_volt = 0.0002
     xtune = 0.71
@@ -159,6 +160,7 @@ def main():
     print('Read lattice, length = {}, {} elements'.format(lattice.get_length(), len(lattice.get_elements())), file=logger)
 
     # assume the lattice sets the reference particle
+
     refpart = lattice.get_reference_particle()
 
     energy = refpart.get_total_energy()
@@ -294,11 +296,11 @@ def main():
     arclength = [elem.lf.arcLength for elem in lattice.get_elements()]
 
     beta_xs = [elem.lf.beta.hor for elem in lattice.get_elements()]
-    alpha_xs = [elem.lf.beta.hor for elem in lattice.get_elements()]
+    alpha_xs = [elem.lf.alpha.hor for elem in lattice.get_elements()]
     psi_xs = [elem.lf.psi.hor for elem in lattice.get_elements()]
     
     beta_ys = [elem.lf.beta.ver for elem in lattice.get_elements()]
-    alpha_ys = [elem.lf.beta.ver for elem in lattice.get_elements()]
+    alpha_ys = [elem.lf.alpha.ver for elem in lattice.get_elements()]
     psi_ys = [elem.lf.psi.ver for elem in lattice.get_elements()]
 
     disp_xs = [elem.lf.dispersion.hor for elem in lattice.get_elements()]
