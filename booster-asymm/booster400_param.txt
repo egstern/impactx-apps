@@ -1,0 +1,44 @@
+Beam parameters from captured beam in run booster400/booster400-SCrect.02
+
+Looking at turn 50 after capture
+
+>>> mass
+np.float64(0.938272046)
+
+>>> pz[50]
+np.float64(0.9544796228601968)
+
+>>> betagamma50 = pz[50]/mass
+>>> betagamma50
+np.float64(1.0172738566914492)
+
+>>> gamma50 = np.sqrt(betagamma50**1 + 1)
+>>> gamma50
+np.float64(1.4203076626884223)
+
+>>> beta50 = betagamma50/gamma50
+>>> beta50
+np.float64(0.7162348577109747)
+
+initial kinetic energy
+>>> mass*(gamma50-1)
+np.float64(0.4001545611624435)
+
+stds at turn 50
+
+>>> std[50]
+array([9.03104943e-03, 2.29985453e-04, 3.08419390e-03, 5.61756980e-04,
+       1.19253558e+00, 1.35637843e-03])
+
+emittances at turn 50
+>>> emitx[50]
+np.float64(2.076772880335113e-06)
+
+>>> emity[50]
+np.float64(1.732551512712988e-06)
+
+>>> emitz[50]
+np.float64(0.001609704940391521)
+
+>>> std[50, 4]/std[50,5]
+np.float64(879.205647733569)
