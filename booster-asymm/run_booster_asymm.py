@@ -19,7 +19,7 @@ total_Booster_charge = 6.7e12  # PIP-II full Booster
 active_buckets = 81  # 81 out of 84 buckets full
 harmonic_number = 84
 
-turns = 4
+turns = 1024
 
 # Geometric emittances from Synergia 400 MeV Booster simulation
 # booster400-SCrect.02 at turn 50
@@ -74,7 +74,8 @@ sim.particle_bc = "periodic"
 
 kin_energy_MeV = 400.1545611624435  # reference energy 400+ MeV
 bunch_charge_C = eV * total_Booster_charge / active_buckets  # used with space charge
-npart = 1024*128  # number of macro particles
+#npart = 1024*128  # number of macro particles
+npart = 1024  # number of macro particles
 
 #   reference particle
 ref = sim.particle_container().ref_particle()
