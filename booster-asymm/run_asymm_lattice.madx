@@ -1,0 +1,3 @@
+call, file="asymm_lattice.madx";
+use, period=booster;
+twiss;

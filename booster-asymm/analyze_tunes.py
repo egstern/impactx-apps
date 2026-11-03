@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import openpmd_api as io
-import pyNAFF as pnf
+from pyNAFF import PyNAFF as pnf
 
-datafile = "diags/openPMD/monitor.bp5"
+datafile = "diags/test_particle_data.npy"
 
 # these lattice functions are calculated with Synergia during
 # construction of the booster-asymm lattice
@@ -16,71 +16,111 @@ beta_x = 33.432491467233
 alpha_y = 0.011403474422954477
 beta_y = 5.2633267186119905
 
-def read_series(opmdfile):
-    series = io.Series(opmdfile, io.Access.read_only)
-    iters = list(series.iterations)
-    # first get ids for the test particles from the first step
-    beam0 = series.iterations[iters[0]].particles["beam"]
-    df0 = beam0.to_df()
-    # test particles have weights == 0
-    # x test particles start with y==0
-    # y test particles start with x==0
-    xtestparticles = df0[ (df0['weighting'] == 0.0) &
-                          (df0['position_y'] == 0.0) ]
-    ytestparticles = df0[ (df0['weighting'] == 0.0) &
-                          (df0['position_x'] == 0.0) ]
-    x0 = xtestparticles['position_x'].to_numpy()
-    y0 = ytestparticles['position_y'].to_numpy()
-    print(len(xtestparticles), 'x test particles')
-    print(x0)
-    print(len(ytestparticles), 'y test particles')
-    print(y0)
-
-    x_ids = xtestparticles['id']
-    y_ids = ytestparticles['id']
-
-    del df0, beam0, xtestparticles, ytestparticles
-
-    print('accumulating over turns')
-    nturns = len(iters)
-    npart = len(x_ids)
-    xdata = np.zeros((nturns, npart))
-    pxdata = np.zeros((nturns, npart))
-    ydata = np.zeros((nturns, npart))
-    pydata = np.zeros((nturns, npart))
-    for turn in range(len(iters)):
-        print('Turn ', turn)
-        beam = series.iterations[iters[turn]].particles["beam"]
-        df = beam.to_df()
-        xtestparticles = df[ (df['weighting'] == 0.0) &
-                             (df['id'].isin(x_ids)) ]
-        ytestparticles = df[ (df['weighting'] == 0.0) &
-                             (df['id'].isin(y_ids)) ]
-        
-        xdata[turn, :] = xtestparticles['position_x']
-        pxdata[turn, :] = xtestparticles['momentum_x']
-        ydata[turn, :] = ytestparticles['position_y']
-        pydata[turn, :] = ytestparticles['momentum_y']
-
-    return xdata, pxdata, ydata, pydata
 
 def main():
-    xdata, pxdata, ydata, pydata = read_series(datafile)
-    print("xdata.shape: ", xdata.shape)
-    print("ydata.shape: ", ydata.shape)
+
+    test_particle_data = np.load(datafile, allow_pickle=True)
+    # turn = test_particle_data[:, 0]
+    # idcpu = test_particle_data[:, 1]
+    # xdata = test_particle_data[:, 2]
+    # pxdata = test_particle_data[:, 3]
+    # ydata = test_particle_data[:, 4]
+    # pydata = test_particle_data[:, 5]
+
+    df = pd.DataFrame(test_particle_data, columns=["turn", "idcpu", "x", "px", "y", "py", "t", "pt"])
+
+    print("type(df): ", type(df))
+    print("df.shape: ", df.shape)
+
+    # Group by particle ids, without changing their relative order
+    grouped_by_idcpu = df.groupby("idcpu", sort=True)
+    particle_ids = df["idcpu"].unique().tolist()
+
+    print("type(grouped_by_idcpu): ", type(grouped_by_idcpu), flush=True)
+    
+    # total number of particles is half x and half y
+    nptot = len(particle_ids)
+    nturns = len(df[df["idcpu"] == particle_ids[0]])
+
+    print("number of particles: ", nptot)
+    print("number of turns: ", nturns)
+
+    npx = nptot//2
+    npy = nptot-npx
+    if npx != npy:
+        raise RuntimeError("number of particles is not even number")
 
     sqrtbetax = np.sqrt(beta_x)
     sqrtbetay = np.sqrt(beta_y)
-    zx = complex(xdata/sqrtbetax, -(pxdata*sqrtbetax + alpha_x*xdata/sqrtbetax))
-    zy = complex(ydata/sqrtbetay, -(pydata*sqrtbetay + alpha_y*ydata/sqrtbetay))
 
-    xtunes = np.zeros(npart)
-    ytunes = np.zeros(npart)
+    plt.figure()
+    plt.title("particle_ids")
+    plt.plot(particle_ids)
 
-    for p in range(npart):
+    fig, axs = plt.subplots(3, 2)
+    axs[0, 0].set_title("x tracks")
+    axs[1, 0].set_title("pt for x tracks")
+    axs[0, 1].set_title("y tracks")
+    axs[1, 1].set_title("pt for y tracks")
+    axs[2, 0].set_title("t vs pt for x tracks")
+    axs[2, 1].set_title("t vs pt for y tracks")
+
+    # accumulate normalized coordinates for both x and y
+    xtracks = np.ndarray((npx, nturns), dtype=np.complex128)
+    ytracks = np.ndarray((npy, nturns), dtype=np.complex128)
+
+    cnt = 0
+    for idcpu, track in grouped_by_idcpu:
+        xarr = track["x"].to_numpy()
+        pxarr = track["px"].to_numpy()
+        yarr = track["y"].to_numpy()
+        pyarr = track["py"].to_numpy()
+        tarr = track["t"].to_numpy()
+        ptarr = track["pt"].to_numpy()
+
+        if cnt%5 == 0 and cnt < 25:
+            axs[0, 0].plot(xarr, label=f"x track {cnt}", lw=2)
+            axs[1, 0].plot(ptarr, label=f"pt track {cnt}", lw=2)
+            axs[2, 0].plot(tarr, ptarr, '.', label=f"longitudinal orbit particle {cnt}")
+        if cnt%5 == 0 and cnt >= 25:
+            axs[0, 1].plot(yarr, label=f"y track {cnt}", lw=2)
+            axs[1, 1].plot(ptarr, label=f"pt track {cnt}", lw=2)
+            axs[2, 1].plot(tarr, ptarr, '.', label=f"longitudinal orbit particle {cnt}")
+
+        if cnt < npx:
+            xtracks[cnt, :] = xarr/sqrtbetax - 1j * (pxarr*sqrtbetax + alpha_x*xarr/sqrtbetax)
+        if cnt >= npx:
+            ytracks[cnt-npx, :] = yarr/sqrtbetay - 1j * (pyarr*sqrtbetay + alpha_y*yarr/sqrtbetay)
+
+        cnt = cnt + 1
+
+    for i in range(3):
+        for j in range(2):
+            axs[i, j].legend(loc='best')
+
+    # print(xtracks[1, :20])
+
+    f, axs = plt.subplots(2, 1)
+    for p in range(0, npx, 5):
+        axs[0].plot(xtracks[p, :].real, xtracks[p, :].imag, '.', label=f'particle {p}x')
+    axs[0].set_title('x orbits')
+    for p in range(0, npy, 5):
+        axs[1].plot(ytracks[p, :].real, ytracks[p, :].imag, '.', label=f'particle {p}y')
+    axs[1].set_title('y orbits')
+
+    axs[0].legend(loc='best')
+    axs[1].legend(loc='best')
+
+    # plt.show()
+    # sys.exit(0)
+
+    xtunes = np.zeros(npx)
+    ytunes = np.zeros(npy)
+
+    for p in range(npx):
         print('getting x spectrum for particle ', p)
-        out = pnf.naff(zx[:, p],
-                       turns=zx.shape[0]-1,
+        out = pnf.naff(xtracks[p, :],
+                       turns=xtracks.shape[1]-1,
                        nterms=1,
                        skipTurns=0,
                        getFullSpectrum=True,
@@ -88,12 +128,15 @@ def main():
         if len(out) == 0:
             print("failed to find spectrum for particle ", p)
         else:
-            print("tune: ", out[0, 1])
-            xtunes[p] = out[0, 1]
+            tune = out[0, 1]
+            if tune < 0:
+                tune = tune + 1
+            xtunes[p] = tune
+            print("tune: ", tune)
 
         print('getting y spectrum for particle ', p)
-        out = pnf.naff(zy[:, p],
-                       turns=zy.shape[0]-1,
+        out = pnf.naff(ytracks[p, :],
+                       turns=ytracks.shape[1]-1,
                        nterms=1,
                        skipTurns=0,
                        getFullSpectrum=True,
@@ -101,8 +144,22 @@ def main():
         if len(out) == 0:
             print("failed to find spectrum for particle ", p)
         else:
-            print("tune: ", out[0, 1])
-            ytunes[p] = out[0, 1]
+            tune = out[0, 1]
+            if tune < 0:
+                tune = tune + 1
+            ytunes[p] = tune
+            print("tune: ", tune)
+
+    np.save('xtunes.npy', xtunes)
+    np.save('ytunes.npy', ytunes)
+
+    f, axs = plt.subplots(2, 1)
+    axs[0].plot(xtunes, 'o', label='x tunes')
+    axs[0].legend(loc='best')
+    axs[1].plot(ytunes, 'd', label='y tunes')
+    axs[1].legend(loc='best')
+
+    plt.show()
 
     return
 
