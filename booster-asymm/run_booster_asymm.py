@@ -6,13 +6,21 @@
 #
 # -*- coding: utf-8 -*-
 
-from booster_asymm_IX_lattice import get_lattice
+import sys, os
+#from booster_asymm_IX_lattice import get_lattice
+from booster400_adjusted_IX_lattice import get_lattice
 from scipy.constants import c, eV, m_p, pi
 from numpy import sqrt, arange, zeros, save as npsave
 
 from impactx import ImpactX, distribution, elements, twiss, push
 from impactx import amr
 
+if len(sys.argv) < 2:
+    # no arguments. don't use space charge
+    SC_solver = None
+elif len(sys.argv) == 2:
+    # one argument, is the space charge solver to use
+    SC_solver = sys.argv[1]
 
 mp_mev = 1.0e-6 * m_p * c**2 / eV
 total_Booster_charge = 6.7e12  # PIP-II full Booster
@@ -42,20 +50,44 @@ disp_px = 0.003057679536025426 # /(dpop)
 verbosity = 0
 gen_diagnostics = False
 step_diagnostics = False
-SC_solver = None
+
 
 sim = ImpactX()
+
+# must set space charge configuration before init_grids
+if not SC_solver:
+    print("NO space solver")
+    sim.space_charge = None
+else:
+    print("Space Charge solver: ", SC_solver)
+    if SC_solver == "2p5D":
+        sim.space_charge = SC_solver
+        sim.max_level = 0
+        sim.n_cell = [32, 32, 128]
+        sim.poisson_solver = "fft"
+        sim.particle_shape = 2
+        pass
+    elif SC_solver == "Gauss2p5D":
+        sim.space_charge = SC_solver
+        sim.particle_shape = 2
+        sim.space_charge_gauss_nint = 101
+        sim.space_charge_gauss_charge_z_bins = 51
+        sim.space_charge_gauss_taylor_delta = 0.01
+        sim.space_charge_apply_longitudinal_kick = True
+        sim.space_charge_gauss_long_scale = 6.0
+        pass
+    else:
+        raise RuntimeError(f"Unsupported SC solver: {SC_solver}")
 
 # domain decomposition & space charge mesh
 sim.init_grids()
 
 myrank = amr.ParallelDescriptor.MyProc()
 
-# set numerical parameters and IO control
-sim.space_charge = False
 # sim.diagnostics = False  # benchmarking
 sim.diagnostics = gen_diagnostics
 sim.slice_step_diagnostics = step_diagnostics
+sim.diag_file_prefix = f"diags_{SC_solver}"
 
 # set the bucket length so that particles can be phase wrapped
 booster_lattice = get_lattice()

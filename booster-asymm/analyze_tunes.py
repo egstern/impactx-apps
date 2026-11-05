@@ -7,7 +7,14 @@ import pandas as pd
 import openpmd_api as io
 from pyNAFF import PyNAFF as pnf
 
-datafile = "diags/test_particle_data.npy"
+if len(sys.argv) < 2:
+    # no arguments. don't use space charge
+    SC_solver = None
+elif len(sys.argv) == 2:
+    # one argument, is the space charge solver to use
+    SC_solver = sys.argv[1]
+
+datafile = f"diags_{SC_solver}/test_particle_data.npy"
 
 # these lattice functions are calculated with Synergia during
 # construction of the booster-asymm lattice
@@ -77,6 +84,12 @@ def main():
         pyarr = track["py"].to_numpy()
         tarr = track["t"].to_numpy()
         ptarr = track["pt"].to_numpy()
+
+        # remove offset to eliminate 0 frequency component
+        xarr = xarr - xarr.mean()
+        pxarr = pxarr - pxarr.mean()
+        yarr = yarr - yarr.mean()
+        pyarr = pyarr - pyarr.mean()
 
         if cnt%5 == 0 and cnt < 25:
             axs[0, 0].plot(xarr, label=f"x track {cnt}", lw=2)
